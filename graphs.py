@@ -1,9 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-import math
 
 from enum import Enum
 
+# Get unique symbol.
 def gensym():
     gensym.acc += 1
     return gensym.acc
@@ -322,9 +322,10 @@ class MachineGraph:
         yield from self.node_dict.values()
 
 
+
+
 # Example usage
 # nodes = [ProgramNode(1, 0, 1), ProgramNode(2, 0, 2), ProgramNode(3,0,3)]
 # edges = [ProgramEdge(1,2), ProgramEdge(1,3, cost=1), ProgramEdge(2,1)]
 # g = ProgramGraph(nodes, edges)
-# print(g.validate())
 # g.draw()
