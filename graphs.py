@@ -3,11 +3,7 @@ import matplotlib.pyplot as plt
 
 from enum import Enum
 
-# Get unique symbol.
-def gensym():
-    gensym.acc += 1
-    return gensym.acc
-gensym.acc = 0
+from utils import *
 
 class NodeState(Enum):
     UNSCHEDULED = 0
