@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import functools
 
 from enum import Enum
 
@@ -280,6 +281,13 @@ class MachineGraph:
     def add_edges(self, en_list):
         for en in en_list:
             self.add_edge(en)
+
+    @functools.cache
+    def _network_distance_id(self, id1, id2): 
+        pass
+
+    def network_distnace(self, id1, id2): 
+        return self._network_distance_id(to_id(id1), to_id(id2))
 
     def draw(self, blocking=True, linewidth_exp=0.5):
         """
