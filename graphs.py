@@ -89,6 +89,12 @@ class MachineNode:
             self.labels = set()
         else:
             self.labels = labels
+    
+    def get_available_inputs(self): 
+        return self.stored_outputs.union(self.ready_inputs)
+    
+    def is_free(self):
+        return self.task == None
 
 class MachineEdge:
     """
@@ -198,6 +204,25 @@ class ProgramGraph(object):
     def add_edges(self, en_list):
         for en in en_list:
             self.add_edge(en)
+    
+    def up_next(self): 
+        '''
+        Returns list of graphs whose predecessors are all complete
+        '''
+        def preds_completed(node):
+            return all([x.state == NodeState.COMPLETED for x in self.pred(node)])
+        
+        return [x for x in self if preds_completed(self)]
+    
+    def finished(self): 
+        '''
+        All nodes processed
+        '''
+        return all([x.state == NodeState.COMPLETED for x in self])
+
+    def snapshot(self):
+        # TODO: for logging
+        pass
 
     def draw(self, blocking=True):
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733 "]
@@ -274,6 +299,9 @@ class MachineGraph:
     def add_nodes(self, pn_list):
         for pn in pn_list:
             self.add_node(pn)
+    
+    def idle_machines(self): 
+        return set([n for n in self if n.is_free()])
 
     def add_edge(self, en):
 
@@ -330,6 +358,9 @@ class MachineGraph:
     def network_distance_real(self, m1, m2, data_size):
         return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
 
+    def snapshot(self):
+        # TODO: for logging
+        pass
 
     def draw(self, blocking=True, linewidth_exp=0.5):
         """
@@ -388,6 +419,8 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
     m_id = to_id(machine)
 
     preds = pg.pred(t_id)
+
+    #TODO: @Troy, it could also be a machine that has it in ready_inputs, perhaps. 
     preds_machine_ids = [p.bound_machine for p in preds]
 
     if any(p.state != NodeState.COMPLETED for p in preds):
