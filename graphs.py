@@ -1,3 +1,4 @@
+from __future__ import annotations
 import networkx as nx
 import matplotlib.pyplot as plt
 import functools
@@ -28,7 +29,7 @@ class ProgramNode(object):
 
     Get this via a ProgramGraph method, or by iterating through it.
     """
-    def __init__(self, compute, memory, id=None, affinities=None):
+    def __init__(self, compute, memory, id=None, affinities=None, dist_affinity=None):
         if id is None:
             self.id = f"pn-{gensym()}-{compute}-{memory}"
         else:
@@ -40,9 +41,16 @@ class ProgramNode(object):
         self.state = NodeState.UNSCHEDULED
         self.machine = None
 
-        if
+        if affinities is None:
+            self.affinities = {}
+        else:
+            self.affinities = affinities
 
-        self.typeaffinities = {}
+        if dist_affinity is None:
+            self.dist_affinity = lambda x : 1 / (1 + x)
+        else:
+            self.dist_affinity = dist_affinity
+
 
 class ProgramEdge(object):
     """
@@ -65,7 +73,7 @@ class MachineNode:
 
     Get this by iterating through/finding neighbors in a MachineGraph.
     """
-    def __init__(self, compute, ram, id=None):
+    def __init__(self, compute, ram, id=None, labels=None):
         if id is None:
             self.id = f"mn-{gensym()}-{compute}-{ram}"
         else:
@@ -77,6 +85,11 @@ class MachineNode:
         self.task = None
 
         self.stored_outputs = set()
+
+        if labels is None:
+            self.labels = set()
+        else:
+            self.labels = labels
 
 class MachineEdge:
     """
@@ -283,11 +296,30 @@ class MachineGraph:
             self.add_edge(en)
 
     @functools.cache
-    def _network_distance_id(self, id1, id2): 
-        pass
+    def _network_distance_est_id(self, id1, id2):
+        # Annotate graph with weights
+        for edge in self.G.edges:
+            self.G.edges[edge]['weight'] = 1 / self.edge_dict[edge].bandwidth
 
-    def network_distnace(self, id1, id2): 
-        return self._network_distance_id(to_id(id1), to_id(id2))
+        # Get path
+        dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+        return dist
+
+    def network_distance_est(self, m1, m2):
+        return self._network_distance_est_id(to_id(m1), to_id(m2))
+
+    @functools.cache
+    def _network_distance_real_id(self, id1, id2, data_size):
+        for edge in self.G.edges:
+            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / self.edge_dict[edge].bandwidth
+
+        # Get path
+        dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+        return dist
+
+
+    def network_distance_real(self, m1, m2, data_size):
+        return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
 
     def draw(self, blocking=True, linewidth_exp=0.5):
         """
