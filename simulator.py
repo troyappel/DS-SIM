@@ -8,14 +8,15 @@ from typing import List
 # simulation, for reconstructing data and visualizations
 Snapshot = namedtuple('Snapshot', ['time', 'mg', 'pg'])
 
-def time_to_run_task(t, m): 
+def time_to_run_task(t, m, eps=1e-5):
     """
     How long does the compute phase of t take to run on m. 
     TODO: Move this somewhere else
     """
-    return t.compute / m.compute
+    return t.compute / (m.compute + eps)
 
-class Simulator: 
+
+class Simulator:
     def __init__(self, mg : graphs.MachineGraph, pg : graphs.ProgramGraph):
         self.mg = mg 
         self.pg = pg
@@ -42,7 +43,7 @@ class Simulator:
 
     def _start_compute(self, task, machine): 
 
-        end_time = self.current_time + time_to_run_task(task, machine)
+        end_time = self.current_time + time_to_run_task(self.pg[task], self.mg[machine])
         ev = events.TaskFinishEvent(end_time, task, machine)
         self.event_queue.put(ev)
 
@@ -73,12 +74,12 @@ class Simulator:
 
         # maps task to a descending-order list of (affinity, machine) pairs
         affinities = {
-            task : sorted([(get_affinity(task, machine), machine) for machine in free_machines], reverse=True)
+            task : sorted([(get_affinity(task, machine), machine) for machine in free_machines], reverse=True, key=lambda x: x[0])
             for task in next_up_tasks
         }
 
         # Start as many tasks as you can
-        for task, machines in enumerate(affinities): 
+        for task, machines in affinities.items():
             # Pick the highest-affinity machine for the task that is still free
             machine_choice = None
             for aff, machine in machines: 

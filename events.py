@@ -51,7 +51,7 @@ class TaskFinishEvent(Event):
         self.machine_id = graphs.to_id(machine)
 
     def transform_graphs(self, pg : graphs.ProgramGraph, mg: graphs.MachineGraph):
-        mg[self.machine_id].stored_output.add(self.task_id)
+        mg[self.machine_id].stored_outputs.add(self.task_id)
         pg[self.task_id].state = graphs.NodeState.COMPLETED
         mg[self.machine_id].task = None
 

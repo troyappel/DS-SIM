@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import collections
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import functools
@@ -17,6 +20,8 @@ class NodeState(Enum):
 
 def to_id(key):
     if isinstance(key, ProgramNode):
+        return key.id
+    elif isinstance(key, MachineNode):
         return key.id
     elif isinstance(key, str):
         return key
@@ -153,7 +158,11 @@ class ProgramGraph(object):
         return True
 
     def __getitem__(self, key):
-        if isinstance(key, list):
+        if isinstance(key, str):
+            return self.node_dict[key]
+        elif isinstance(key, tuple):
+            return self.edge_dict[to_id(key)]
+        elif isinstance(key, list) or isinstance(key, collections.abc.Iterable):
             return [self.node_dict[to_id(_key)] for _key in key]
         else:
             return self.node_dict[to_id(key)]
@@ -211,8 +220,8 @@ class ProgramGraph(object):
         '''
         def preds_completed(node):
             return all([x.state == NodeState.COMPLETED for x in self.pred(node)])
-        
-        return [x for x in self if preds_completed(self)]
+
+        return [x for x in list(self.node_dict.values()) if preds_completed(x) and x.state == NodeState.UNSCHEDULED]
     
     def finished(self): 
         '''
@@ -315,8 +324,10 @@ class MachineGraph:
             assert((id1, id2) not in self.node_dict)
             assert((id1, id2) not in self.G.edges)
 
-        self.G.add_edge(id1, id2)
-        self.edge_dict[(id1, id2)] = en
+        ids = sorted([id1, id2])
+
+        self.G.add_edge(ids[0], ids[1])
+        self.edge_dict[(ids[0], ids[1])] = en
 
     def add_edges(self, en_list):
         for en in en_list:
@@ -399,10 +410,13 @@ class MachineGraph:
             plt.pause(0.001)
 
     def __getitem__(self, key):
-        if isinstance(key, list):
+        if isinstance(key, str):
+            return self.node_dict[key]
+        elif isinstance(key, tuple):
+            ids = sorted(list(key))
+            return self.edge_dict[to_id(tuple(ids))]
+        elif isinstance(key, list) or isinstance(key, collections.abc.Iterable):
             return [self.node_dict[to_id(_key)] for _key in key]
-        if isinstance(key, tuple):
-            return self.edge_dict[to_id(key)]
         else:
             return self.node_dict[to_id(key)]
 
@@ -429,11 +443,14 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
     if any(m is None for m in preds_machine_ids):
         return None
 
+    if len(preds) == 0:
+        return 0
+
     # Calculate fetch time for each
     if heuristic:
         times = [mg.network_distance_est(m_id, _m_id) for _m_id in preds_machine_ids]
     else:
-        edge_data_sizes = [_p.data_size for _p in preds]
+        edge_data_sizes = [pg[(_p, t_id)].data_size for _p in preds]
         times = [mg.network_distance_real(m_id, _m_id, sz) for _m_id, sz in zip(preds, edge_data_sizes)]
 
     # Max across fetch times
