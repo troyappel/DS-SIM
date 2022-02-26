@@ -2,6 +2,7 @@ from __future__ import annotations
 import networkx as nx
 import matplotlib.pyplot as plt
 import functools
+import math
 
 from enum import Enum
 
@@ -9,9 +10,10 @@ from utils import *
 
 class NodeState(Enum):
     UNSCHEDULED = 0
-    WAITING = 1
-    RUNNING = 2
-    COMPLETED = 3
+    FETCHING = 1
+    READY = 2
+    RUNNING = 3
+    COMPLETED = 4
 
 def to_id(key):
     if isinstance(key, ProgramNode):
@@ -29,17 +31,16 @@ class ProgramNode(object):
 
     Get this via a ProgramGraph method, or by iterating through it.
     """
-    def __init__(self, compute, memory, id=None, affinities=None, dist_affinity=None):
+    def __init__(self, compute, id=None, affinities=None, dist_affinity=None):
         if id is None:
-            self.id = f"pn-{gensym()}-{compute}-{memory}"
+            self.id = f"pn-{gensym()}-{compute}"
         else:
             self.id = str(id)
 
         self.compute = compute
-        self.memory = memory
 
         self.state = NodeState.UNSCHEDULED
-        self.machine = None
+        self.bound_machine = None
 
         if affinities is None:
             self.affinities = {}
@@ -47,7 +48,7 @@ class ProgramNode(object):
             self.affinities = affinities
 
         if dist_affinity is None:
-            self.dist_affinity = lambda x : 1 / (1 + x)
+            self.dist_affinity = lambda x: 1 / (1 + x)
         else:
             self.dist_affinity = dist_affinity
 
@@ -59,11 +60,11 @@ class ProgramEdge(object):
     Stores IDs only of associated nodes, letting us define edges before the graph.
     Get this by a ProgramGraph method.
     """
-    def __init__(self, in_node, out_node, cost=0):
+    def __init__(self, in_node, out_node, data_size=0):
         self.id = (to_id(in_node), to_id(out_node))
         self.in_node = to_id(in_node)
         self.out_node = to_id(out_node)
-        self.cost = cost
+        self.data_size = data_size
 
 ############ MACHINES
 
@@ -73,18 +74,16 @@ class MachineNode:
 
     Get this by iterating through/finding neighbors in a MachineGraph.
     """
-    def __init__(self, compute, ram, id=None, labels=None):
+    def __init__(self, compute, id=None, labels=None):
         if id is None:
-            self.id = f"mn-{gensym()}-{compute}-{ram}"
+            self.id = f"mn-{gensym()}-{compute}"
         else:
             self.id = str(id)
 
         self.compute = compute
-        self.ram = ram
-
         self.task = None
-
         self.stored_outputs = set()
+        self.ready_inputs = set()
 
         if labels is None:
             self.labels = set()
@@ -201,7 +200,7 @@ class ProgramGraph(object):
             self.add_edge(en)
 
     def draw(self, blocking=True):
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18"]
+        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733 "]
         if self.pos is not None:
             self.pos = nx.spring_layout(self.G)
 
@@ -297,6 +296,11 @@ class MachineGraph:
 
     @functools.cache
     def _network_distance_est_id(self, id1, id2):
+
+        # Zero distance to self
+        if id1 == id2:
+            return 0
+
         # Annotate graph with weights
         for edge in self.G.edges:
             self.G.edges[edge]['weight'] = 1 / self.edge_dict[edge].bandwidth
@@ -310,6 +314,11 @@ class MachineGraph:
 
     @functools.cache
     def _network_distance_real_id(self, id1, id2, data_size):
+
+        # Zero distance to self
+        if id1 == id2:
+            return 0
+
         for edge in self.G.edges:
             self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / self.edge_dict[edge].bandwidth
 
@@ -321,6 +330,7 @@ class MachineGraph:
     def network_distance_real(self, m1, m2, data_size):
         return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
 
+
     def draw(self, blocking=True, linewidth_exp=0.5):
         """
         Draw this graph using matplotlib.
@@ -329,7 +339,7 @@ class MachineGraph:
         :param linewidth_exp: Exponent to determine line width based on bandwidth, between 0 and 1.
         """
         # todo: make pos consistent
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18"]
+        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         taskless_color = "#7788AA"
 
         if self.pos is None:
@@ -368,6 +378,47 @@ class MachineGraph:
     def __iter__(self):
         yield from self.node_dict.values()
 
+
+def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuristic=False):
+    """
+    :param heuristic: Whether or not to use actual distance or an inverse-bandwidth heuristic.
+    :return: The max time to fetch all previous results, None otherwise
+    """
+    t_id = to_id(task)
+    m_id = to_id(machine)
+
+    preds = pg.pred(t_id)
+    preds_machine_ids = [p.bound_machine for p in preds]
+
+    if any(p.state != NodeState.COMPLETED for p in preds):
+        return None
+
+    if any(m is None for m in preds_machine_ids):
+        return None
+
+    # Calculate fetch time for each
+    if heuristic:
+        times = [mg.network_distance_est(m_id, _m_id) for _m_id in preds_machine_ids]
+    else:
+        edge_data_sizes = [_p.data_size for _p in preds]
+        times = [mg.network_distance_real(m_id, _m_id, sz) for _m_id, sz in zip(preds, edge_data_sizes)]
+
+    # Max across fetch times
+    return max(times)
+
+def get_task_affinity(task, machine, pg: ProgramGraph, mg: MachineGraph):
+    """
+    :return: affinity, calculated by multiplying distance affinity, and affinity for each type of machine this is
+    """
+    t_id = to_id(task)
+    m_id = to_id(machine)
+
+    dist = get_max_fetch_time(task, machine, pg, mg)
+
+    # Get mult of all machine types
+    machine_affinities = [pg[t_id].affinities.get(m_type, 1) for m_type in mg[m_id].labels]
+
+    return pg[t_id].dist_affinity(dist) * math.prod(machine_affinities)
 
 
 

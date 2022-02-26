@@ -24,17 +24,17 @@ class Event(ABC):
     def __index__(self):
         return int(self)
 
+# Event for when ALL dependencies of a task are retrieved
 class TransferFinishEvent(Event):
     __hash__ = Event.__hash__
 
-    def __init__(self, time, task, machine):
+    def __init__(self, time, task):
         super().__init__(time)
 
-        self.task_id = graphs.to_id(task) # Task whose results are to be transferred
-        self.trg_mn = graphs.to_id(machine) # Target machine of the transfer
+        self.task_id = graphs.to_id(task) # Task who requested a fetch
 
     def transform_graphs(self, pg: graphs.ProgramGraph, mg: graphs.MachineGraph):
-        pass
+        pg[self.task_id].state = graphs.NodeState.READY
 
 class TaskFinishEvent(Event):
     __hash__ = Event.__hash__
@@ -46,7 +46,6 @@ class TaskFinishEvent(Event):
         self.machine_id = graphs.to_id(machine)
 
     def transform_graphs(self, pg : graphs.ProgramGraph, mg: graphs.MachineGraph):
-        pg[self.machine_id].stored_output.add()
+        pg[self.machine_id].stored_output.add(self.task_id)
         mg[self.task_id].state = graphs.NodeState.COMPLETED
-        pass
 
