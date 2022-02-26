@@ -27,7 +27,7 @@ class ProgramNode(object):
 
     Get this via a ProgramGraph method, or by iterating through it.
     """
-    def __init__(self, compute, memory, id=None, affinity=None):
+    def __init__(self, compute, memory, id=None, affinities=None):
         if id is None:
             self.id = f"pn-{gensym()}-{compute}-{memory}"
         else:
@@ -39,10 +39,9 @@ class ProgramNode(object):
         self.state = NodeState.UNSCHEDULED
         self.machine = None
 
-        if affinity is None:
-            self.affinity = lambda x : True
-        else:
-            self.affinity = affinity
+        if
+
+        self.typeaffinities = {}
 
 class ProgramEdge(object):
     """
@@ -118,6 +117,8 @@ class ProgramGraph(object):
         if edges is not None:
             self.add_edges(edges)
 
+        self.pos = None
+
     def validate(self):
         # Check that there are no cycles
         try:
@@ -160,6 +161,8 @@ class ProgramGraph(object):
             assert(pn.id not in self.node_dict)
         self.node_dict[pn.id] = pn
 
+        self.pos = None
+
     def add_nodes(self, pn_list):
         for pn in pn_list:
             self.add_node(pn)
@@ -185,18 +188,19 @@ class ProgramGraph(object):
 
     def draw(self, blocking=True):
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18"]
-        pos = nx.spring_layout(self.G)
+        if self.pos is not None:
+            self.pos = nx.spring_layout(self.G)
 
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]
-            nx.draw_networkx_nodes(self.G, pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
 
-        nx.draw_networkx_labels(self.G, pos)
+        nx.draw_networkx_labels(self.G, self.pos)
 
         # Draw based on cost of edge
         costs = [self.edge_dict[tup].cost for tup in self.G.edges]
 
-        nx.draw_networkx_edges(self.G, pos, self.G.edges, arrows=True, edge_color=costs, edge_cmap=plt.get_cmap('copper'))
+        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, arrows=True, edge_color=costs, edge_cmap=plt.get_cmap('copper'))
 
         if blocking:
             plt.show()
@@ -229,6 +233,8 @@ class MachineGraph:
         if edges is not None:
             self.add_edges(edges)
 
+        self.pos = None
+
     def validate(self):
         # Check that there are no duplicate ids
         if len(self.node_dict.keys()) != len(set(self.node_dict.keys())):
@@ -249,6 +255,8 @@ class MachineGraph:
         if self.strict:
             assert(pn.id not in self.node_dict)
         self.node_dict[pn.id] = pn
+
+        self.pos = None
 
     def add_nodes(self, pn_list):
         for pn in pn_list:
@@ -280,26 +288,29 @@ class MachineGraph:
         :param blocking: Whether to block the program while displaying the graph.
         :param linewidth_exp: Exponent to determine line width based on bandwidth, between 0 and 1.
         """
+        # todo: make pos consistent
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18"]
         taskless_color = "#7788AA"
-        pos = nx.spring_layout(self.G)
+
+        if self.pos is None:
+            self.pos = nx.spring_layout(self.G)
 
         taskless = [n for n in self.G if self.node_dict[n].task is None]
         tasked = [n for n in self.G if self.node_dict[n].task is not None]
 
         for ns in NodeState:
             nodes_ns = [n.task.state for n in tasked if self.node_dict[n].task.state == ns]
-            nx.draw_networkx_nodes(self.G, pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
 
-        nx.draw_networkx_nodes(self.G, pos, nodelist=taskless, node_size=500, node_color=taskless_color)
+        nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)
 
-        nx.draw_networkx_labels(self.G, pos)
+        nx.draw_networkx_labels(self.G, self.pos)
 
         # Draw based on cost of edge
         latencies = [self.edge_dict[tup].latency for tup in self.G.edges]
         bandwidths = [1 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
 
-        nx.draw_networkx_edges(self.G, pos, self.G.edges, width=bandwidths,  edge_color=latencies, edge_cmap=plt.get_cmap('copper'))
+        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies, edge_cmap=plt.get_cmap('copper'))
 
         if blocking:
             plt.show()
