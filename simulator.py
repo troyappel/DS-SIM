@@ -78,7 +78,7 @@ class Simulator:
         }
 
         # Start as many tasks as you can
-        for task, machines in affinities: 
+        for task, machines in enumerate(affinities): 
             # Pick the highest-affinity machine for the task that is still free
             machine_choice = None
             for aff, machine in machines: 
