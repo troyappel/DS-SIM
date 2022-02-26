@@ -102,5 +102,7 @@ class Simulator:
             self._schedule()
 
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
+
+            self.pg.draw()
         
         return self.history

@@ -234,8 +234,8 @@ class ProgramGraph(object):
         pass
 
     def draw(self, blocking=True):
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733 "]
-        if self.pos is not None:
+        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
+        if self.pos is None:
             self.pos = nx.spring_layout(self.G)
 
         for ns in NodeState:
@@ -245,7 +245,7 @@ class ProgramGraph(object):
         nx.draw_networkx_labels(self.G, self.pos)
 
         # Draw based on cost of edge
-        costs = [self.edge_dict[tup].cost for tup in self.G.edges]
+        costs = [self.edge_dict[tup].data_size for tup in self.G.edges]
 
         nx.draw_networkx_edges(self.G, self.pos, self.G.edges, arrows=True, edge_color=costs, edge_cmap=plt.get_cmap('copper'))
 
@@ -391,7 +391,7 @@ class MachineGraph:
         tasked = [n for n in self.G if self.node_dict[n].task is not None]
 
         for ns in NodeState:
-            nodes_ns = [n.task.state for n in tasked if self.node_dict[n].task.state == ns]
+            nodes_ns = [n.task.state for n in tasked if n.task.state == ns]
             nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
 
         nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)
