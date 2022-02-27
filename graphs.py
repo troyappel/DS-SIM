@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+
+from typing import Callable, List, Tuple, Set, Optional, Dict, Union, Type
+
 import collections
 
 import networkx as nx
@@ -30,110 +34,30 @@ def to_id(key):
     else:
         return str(key)
 
-class ProgramNode(object):
-    """
-    Representation of Program Node.
 
-    Get this via a ProgramGraph method, or by iterating through it.
-    """
-    def __init__(self, compute, id=None, affinities=None, dist_affinity=None):
+
+class SuperNode(object):
+    def __init__(self, id=None):
         if id is None:
-            self.id = f"pn-{gensym()}-{compute}"
+            self.id = f"pn-{gensym()}"
         else:
             self.id = str(id)
 
-        self.compute = compute
-
-        self.state = NodeState.UNSCHEDULED
-        self.bound_machine = None
-
-        if affinities is None:
-            self.affinities = {}
-        else:
-            self.affinities = affinities
-
-        if dist_affinity is None:
-            self.dist_affinity = lambda x: 1 / (1 + x)
-        else:
-            self.dist_affinity = dist_affinity
+class SuperEdge(object):
+    def __init__(self, in_node, out_node):
+        self.id: Tuple[str, str] = (to_id(in_node), to_id(out_node))
+        self.in_node: str = to_id(in_node)
+        self.out_node: str = to_id(out_node)
 
 
-class ProgramEdge(object):
-    """
-    Program edge representation.
+class SuperGraph(object):
+    def __init__(self, graph, nodes=None, edges=None, strict=True):
+        self.G: Union[nx.DiGraph, nx.Graph] = graph
 
-    Stores IDs only of associated nodes, letting us define edges before the graph.
-    Get this by a ProgramGraph method.
-    """
-    def __init__(self, in_node, out_node, data_size=0):
-        self.id = (to_id(in_node), to_id(out_node))
-        self.in_node = to_id(in_node)
-        self.out_node = to_id(out_node)
-        self.data_size = data_size
+        self.node_dict: Dict[str, Union[SuperNode, ProgramNode, MachineNode]] = {}
+        self.edge_dict: Dict[tuple[str, str], Union[SuperEdge, ProgramEdge, MachineEdge]] = {}
 
-############ MACHINES
-
-class MachineNode:
-    """
-    Representation of physical nodes.
-
-    Get this by iterating through/finding neighbors in a MachineGraph.
-    """
-    def __init__(self, compute, id=None, labels=None):
-        if id is None:
-            self.id = f"mn-{gensym()}-{compute}"
-        else:
-            self.id = str(id)
-
-        self.compute = compute
-        self.task = None
-        self.stored_outputs = set()
-        self.ready_inputs = set()
-
-        if labels is None:
-            self.labels = set()
-        else:
-            self.labels = labels
-    
-    def get_available_inputs(self): 
-        return self.stored_outputs.union(self.ready_inputs)
-    
-    def is_free(self):
-        return self.task == None
-
-class MachineEdge:
-    """
-    Representation of edge between physical nodes. Stores ids of the machines, NOT machine nodes.
-
-    Get this by requesting an edge from a MachineGraph.
-    """
-    def __init__(self, m1, m2, latency=0, bandwidth=10):
-        self.id = to_id(m1), to_id(m2)
-        self.machine1 = to_id(m1)
-        self.machine2 = to_id(m2)
-        self.latency = latency
-        self.bandwidth = bandwidth
-
-
-##################
-### GRAPHS ###
-##################
-
-class ProgramGraph(object):
-    """
-    Representation of a program graph.
-
-    Thin wrapper around networkx.DiGraph. Lets you add/remove nodes, get neighbors, iterate, etc.
-    All methods handle either a ProgramNode object or its ID.
-    """
-    def __init__(self, nodes=None, edges=None, strict=True):
-
-        self.G = nx.DiGraph()
-
-        self.node_dict = {}
-        self.edge_dict = {}
-
-        self.strict = strict
+        self.strict: bool = strict
 
         if nodes is not None:
             self.add_nodes(nodes)
@@ -143,19 +67,39 @@ class ProgramGraph(object):
 
         self.pos = None
 
-    def validate(self):
-        # Check that there are no cycles
-        try:
-            nx.find_cycle(self.G)
-            return False
-        except nx.NetworkXNoCycle:
-            pass
+    def add_node(self, pn):
+        self.G.add_node(pn.id)
+        if self.strict:
+            assert (pn.id not in self.node_dict)
+        self.node_dict[pn.id] = pn
 
-        # Check that there are no duplicate ids
-        if len(self.node_dict.keys()) != len(set(self.node_dict.keys())):
-            return False
+        self.pos = None
 
-        return True
+    def add_nodes(self, pn_list):
+        for pn in pn_list:
+            self.add_node(pn)
+
+
+    def add_edge(self, en):
+
+        id1 = to_id(en.in_node)
+        id2 = to_id(en.out_node)
+
+        if self.strict:
+            assert (id1 != id2)
+            assert (id1 in self.node_dict)
+            assert (id2 in self.node_dict)
+            assert ((id1, id2) not in self.node_dict)
+            assert ((id1, id2) not in self.G.edges)
+
+        ids = sorted([id1, id2])
+
+        self.G.add_edge(ids[0], ids[1])
+        self.edge_dict[(ids[0], ids[1])] = en
+
+    def add_edges(self, en_list):
+        for en in en_list:
+            self.add_edge(en)
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -167,6 +111,112 @@ class ProgramGraph(object):
         else:
             return self.node_dict[to_id(key)]
 
+    def __iter__(self):
+        yield from self.node_dict.values()
+
+    @abstractmethod
+    def draw(self, blocking=-1, **kwargs):
+        pass
+
+    @abstractmethod
+    def snapshot(self):
+        pass
+
+    @abstractmethod
+    def validate(self):
+        pass
+
+
+class ProgramNode(SuperNode):
+    """
+    Representation of Program Node.
+
+    Get this via a ProgramGraph method, or by iterating through it.
+    """
+    def __init__(self, compute, id=None, affinities=None, dist_affinity=None):
+        super().__init__(id)
+
+        self.compute: int = compute
+        self.state: NodeState = NodeState.UNSCHEDULED
+        self.bound_machine: Optional[MachineNode] = None
+
+        self.affinities: Set[str]
+        if affinities is None:
+            self.affinities = {}
+        else:
+            self.affinities = affinities
+
+        self.dist_affinity: Callable[[int], int]
+        if dist_affinity is None:
+            self.dist_affinity = lambda x: 1 / (1 + x)
+        else:
+            self.dist_affinity = dist_affinity
+
+
+class ProgramEdge(SuperEdge):
+    """
+    Program edge representation.
+
+    Stores IDs only of associated nodes, letting us define edges before the graph.
+    Get this by a ProgramGraph method.
+    """
+    def __init__(self, in_node, out_node, data_size=0):
+        super().__init__(in_node, out_node)
+        self.data_size: int = data_size
+
+class MachineNode(SuperNode):
+    """
+    Representation of physical nodes.
+
+    Get this by iterating through/finding neighbors in a MachineGraph.
+    """
+    def __init__(self, compute, id=None, labels=None):
+        super().__init__(id)
+
+        self.compute: int = compute
+        self.task: Optional[ProgramNode] = None
+        self.stored_outputs: Set[ProgramNode] = set()
+        self.ready_inputs: Set[ProgramNode] = set()
+
+        self.labels: Set[str]
+        if labels is None:
+            self.labels = set()
+        else:
+            self.labels = labels
+    
+    def get_available_inputs(self): 
+        return self.stored_outputs.union(self.ready_inputs)
+    
+    def is_free(self):
+        return self.task is None
+
+class MachineEdge(SuperEdge):
+    """
+    Representation of edge between physical nodes. Stores ids of the machines, NOT machine nodes.
+
+    Get this by requesting an edge from a MachineGraph.
+    """
+    def __init__(self, in_node, out_node, latency=0, bandwidth=10):
+        super().__init__(in_node, out_node)
+        self.latency:   int = latency
+        self.bandwidth: int = bandwidth
+
+
+##################
+### GRAPHS ###
+##################
+
+class ProgramGraph(SuperGraph):
+    """
+    Representation of a program graph.
+
+    Thin wrapper around networkx.DiGraph. Lets you add/remove nodes, get neighbors, iterate, etc.
+    All methods handle either a ProgramNode object or its ID.
+    """
+    def __init__(self, nodes=None, edges=None, strict=True):
+        super().__init__(nx.DiGraph(), nodes, edges, strict)
+
+    ## GRAPH-SPECIFIC FUNCTIONS
     def pred(self, key):
         preds = self.G.predecessors(to_id(key))
         return self[preds]
@@ -182,37 +232,6 @@ class ProgramGraph(object):
     def out_edges(self, key):
         eds = self.G.out_edges(to_id(key))
         return [self.edge_dict[ed] for ed in eds]
-
-    def add_node(self, pn):
-        self.G.add_node(pn.id)
-        if self.strict:
-            assert(pn.id not in self.node_dict)
-        self.node_dict[pn.id] = pn
-
-        self.pos = None
-
-    def add_nodes(self, pn_list):
-        for pn in pn_list:
-            self.add_node(pn)
-
-    def add_edge(self, en):
-
-        id1 = to_id(en.in_node)
-        id2 = to_id(en.out_node)
-
-        if self.strict:
-            assert (id1 != id2)
-            assert (id1 in self.node_dict)
-            assert (id2 in self.node_dict)
-            assert((id1, id2) not in self.node_dict)
-            assert((id1, id2) not in self.G.edges)
-
-        self.G.add_edge(id1, id2)
-        self.edge_dict[(id1, id2)] = en
-
-    def add_edges(self, en_list):
-        for en in en_list:
-            self.add_edge(en)
     
     def up_next(self): 
         '''
@@ -229,11 +248,12 @@ class ProgramGraph(object):
         '''
         return all([x.state == NodeState.COMPLETED for x in self])
 
-    def snapshot(self):
-        # TODO: for logging
-        pass
 
-    def draw(self, blocking=True):
+    def idle_machines(self):
+        return set([n for n in self if n.is_free()])
+
+
+    def draw(self, blocking=-1, **kwargs):
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
@@ -254,12 +274,28 @@ class ProgramGraph(object):
         else:
             plt.pause(0.001)
 
-    def __iter__(self):
-        yield from self.node_dict.values()
+    def snapshot(self):
+        # TODO: for logging
+        pass
+
+    def validate(self):
+        # Check that there are no cycles
+        try:
+            nx.find_cycle(self.G)
+            return False
+        except nx.NetworkXNoCycle:
+            pass
+
+        # Check that there are no duplicate ids
+        if len(self.node_dict.keys()) != len(set(self.node_dict.keys())):
+            return False
+
+        return True
 
 
 
-class MachineGraph:
+
+class MachineGraph(SuperGraph):
     """
     Representation of physical graph.
 
@@ -267,27 +303,7 @@ class MachineGraph:
     Generally works
     """
     def __init__(self, nodes=None, edges=None, strict=True):
-        self.G = nx.Graph()
-
-        self.node_dict = {}
-        self.edge_dict = {}
-
-        self.strict = strict
-
-        if nodes is not None:
-            self.add_nodes(nodes)
-
-        if edges is not None:
-            self.add_edges(edges)
-
-        self.pos = None
-
-    def validate(self):
-        # Check that there are no duplicate ids
-        if len(self.node_dict.keys()) != len(set(self.node_dict.keys())):
-            return False
-
-        return True
+        super().__init__(nx.Graph(), nodes, edges, strict)
 
     def neighbors(self, key):
         neigh = self.G.neighbors(to_id(key))
@@ -297,41 +313,8 @@ class MachineGraph:
         eds = self.G.edges(to_id(key))
         return [self.edge_dict[ed] for ed in eds]
 
-    def add_node(self, pn):
-        self.G.add_node(pn.id)
-        if self.strict:
-            assert(pn.id not in self.node_dict)
-        self.node_dict[pn.id] = pn
-
-        self.pos = None
-
-    def add_nodes(self, pn_list):
-        for pn in pn_list:
-            self.add_node(pn)
-    
     def idle_machines(self): 
         return set([n for n in self if n.is_free()])
-
-    def add_edge(self, en):
-
-        id1 = to_id(en.machine1)
-        id2 = to_id(en.machine2)
-
-        if self.strict:
-            assert (id1 != id2)
-            assert (id1 in self.node_dict)
-            assert (id2 in self.node_dict)
-            assert((id1, id2) not in self.node_dict)
-            assert((id1, id2) not in self.G.edges)
-
-        ids = sorted([id1, id2])
-
-        self.G.add_edge(ids[0], ids[1])
-        self.edge_dict[(ids[0], ids[1])] = en
-
-    def add_edges(self, en_list):
-        for en in en_list:
-            self.add_edge(en)
 
     @functools.cache
     def _network_distance_est_id(self, id1, id2):
@@ -370,19 +353,19 @@ class MachineGraph:
         return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
 
     def snapshot(self):
-        # TODO: for logging
         pass
 
-    def draw(self, blocking=True, linewidth_exp=0.5):
+    def draw(self, blocking=True, **kwargs):
         """
         Draw this graph using matplotlib.
 
         :param blocking: Whether to block the program while displaying the graph.
         :param linewidth_exp: Exponent to determine line width based on bandwidth, between 0 and 1.
         """
-        # todo: make pos consistent
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         taskless_color = "#7788AA"
+
+        linewidth_exp = kwargs.get("linewidth_exp", 0.2)
 
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
@@ -409,19 +392,12 @@ class MachineGraph:
         else:
             plt.pause(0.001)
 
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            return self.node_dict[key]
-        elif isinstance(key, tuple):
-            ids = sorted(list(key))
-            return self.edge_dict[to_id(tuple(ids))]
-        elif isinstance(key, list) or isinstance(key, collections.abc.Iterable):
-            return [self.node_dict[to_id(_key)] for _key in key]
-        else:
-            return self.node_dict[to_id(key)]
+    def validate(self):
+        # Check that there are no duplicate ids
+        if len(self.node_dict.keys()) != len(set(self.node_dict.keys())):
+            return False
 
-    def __iter__(self):
-        yield from self.node_dict.values()
+        return True
 
 
 def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuristic=False):
