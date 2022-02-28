@@ -92,7 +92,7 @@ class SuperGraph(object):
             assert ((id1, id2) not in self.node_dict)
             assert ((id1, id2) not in self.G.edges)
 
-        ids = sorted([id1, id2])
+        ids = sorted([id1, id2], key=int)
 
         self.G.add_edge(ids[0], ids[1])
         self.edge_dict[(ids[0], ids[1])] = en
@@ -198,8 +198,8 @@ class MachineEdge(SuperEdge):
     """
     def __init__(self, in_node, out_node, latency=0, bandwidth=10):
         super().__init__(in_node, out_node)
-        self.latency:   int = latency
-        self.bandwidth: int = bandwidth
+        self.latency:   float = latency
+        self.bandwidth: float = bandwidth
 
 
 ##################
