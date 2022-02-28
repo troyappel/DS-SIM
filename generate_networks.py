@@ -28,11 +28,11 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
     edges = []
     # connect machines to racks
     for i in range(total_machines):
-        edges.append(MachineEdge(i, len(machines) + i//num_racks, bandwidth=rack_bandwidth/2))
+        edges.append(MachineEdge(i, len(machines) + i//num_racks, bandwidth=rack_bandwidth))
 
     # connect racks to root
     for i in range(num_racks):
-        edges.append(MachineEdge(len(machines) + i, len(machines) + len(rack_switches), bandwidth=root_bandwidth/2))
+        edges.append(MachineEdge(len(machines) + i, len(machines) + len(rack_switches), bandwidth=root_bandwidth))
 
     # connect machines to disks
     for i in range(total_machines):
@@ -40,9 +40,9 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
 
     return MachineGraph(nodes, edges)
 
-# example
-# mg = generate_tree_machine_network(9, 3, 1, 4, 100, 10, 1)
-# mg.draw()
+# example - rack/root bandwidths are often (1/10 Gbps), which seems reasonable based on the mapreduce paper
+mg = generate_tree_machine_network(9, 3, 1, 4, 100, 1, 10)
+mg.draw()
 
 
 
