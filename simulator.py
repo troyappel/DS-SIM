@@ -31,7 +31,7 @@ class Simulator:
         """
         end_time = self.current_time + graphs.get_max_fetch_time(task, machine, self.pg, self.mg)
         
-        ev = events.TransferFinishEvent(end_time, task, machine, self.pg.pred(task))
+        ev = events.TransferFinishEvent(end_time, self.pg, self.mg, task, machine, self.pg.pred(task))
         self.event_queue.put(ev)
 
         # The transfer has started, so the associated task is fetching
@@ -44,26 +44,26 @@ class Simulator:
     def _start_compute(self, task, machine): 
 
         end_time = self.current_time + time_to_run_task(self.pg[task], self.mg[machine])
-        ev = events.TaskFinishEvent(end_time, task, machine)
+        ev = events.TaskFinishEvent(end_time, self.pg, self.mg, task, machine)
         self.event_queue.put(ev)
 
         # Compute has started; task is running. 
-        self.pg[task].state = graphs.NodeState.RUNNING
+        task.state = graphs.NodeState.RUNNING
 
         # TODO: Set this here or when the transfer gets started?
         # This will depend on whether we want to support simultaneous 
         # fetch and compute
-        self.mg[machine].task = task
+        machine.task = task
 
     def _process_event(self, event : events.Event): 
         self.current_time = max(self.current_time, event.time)
-        event.transform_graphs(self.pg, self.mg)
+        event.transform_graphs()
         
         if(isinstance(event, events.TransferFinishEvent)): 
             # This needs to be made more complicated if we allow 
             # simultaneous fetching and compute (the machine might be busy with)
             # something else when we get here
-            self._start_compute(event.task_id, event.machine_id)
+            self._start_compute(event.task, event.machine)
 
     def _schedule(self):
         next_up_tasks = self.pg.up_next()
@@ -104,5 +104,6 @@ class Simulator:
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
 
             self.pg.draw()
+            self.mg.draw()
         
         return self.history

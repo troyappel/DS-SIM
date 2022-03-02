@@ -374,7 +374,7 @@ class MachineGraph(SuperGraph):
         tasked = [n for n in self.G if self.node_dict[n].task is not None]
 
         for ns in NodeState:
-            nodes_ns = [n.task.state for n in tasked if n.task.state == ns]
+            nodes_ns = [n for n in tasked if self[n].task.state == ns]
             nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
 
         nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)

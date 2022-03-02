@@ -5,12 +5,15 @@ from utils import *
 
 @functools.total_ordering
 class Event(ABC):
-    def __init__(self, time):
+    def __init__(self, time, pg: graphs.ProgramGraph, mg: graphs.MachineGraph):
         self.uid = str(gensym())
         self.time = time
 
+        self.pg = pg
+        self.mg = mg
+
     @abstractmethod
-    def transform_graphs(self, pg: graphs.ProgramGraph, mg: graphs.MachineGraph):
+    def transform_graphs(self):
         pass
 
     def __hash__(self):
@@ -29,29 +32,29 @@ class Event(ABC):
 class TransferFinishEvent(Event):
     __hash__ = Event.__hash__
 
-    def __init__(self, time, task, machine, data):
-        super().__init__(time)
-        self.machine_id = graphs.to_id(machine)
-        self.task_id = graphs.to_id(task) # Task who requested a fetch
+    def __init__(self, time, pg: graphs.ProgramGraph, mg: graphs.MachineGraph, task, machine, data):
+        super().__init__(time, pg, mg)
+        self.machine: graphs.MachineNode = machine
+        self.task: graphs.ProgramNode = task
         self.data = data
 
-    def transform_graphs(self, pg: graphs.ProgramGraph, mg: graphs.MachineGraph):
-        pg[self.task_id].state = graphs.NodeState.READY
+    def transform_graphs(self):
+        self.task.state = graphs.NodeState.READY
         # The machine who requested a fetch now has all the data associated 
         # with this transfer
-        mg[self.machine_id].ready_inputs.update(self.data)
+        self.machine.ready_inputs.update(self.data)
 
 class TaskFinishEvent(Event):
     __hash__ = Event.__hash__
 
-    def __init__(self, time, task, machine):
-        super().__init__(time)
+    def __init__(self, time, pg : graphs.ProgramGraph, mg: graphs.MachineGraph, task: graphs.ProgramNode, machine: graphs.MachineNode):
+        super().__init__(time, pg, mg)
 
-        self.task_id = graphs.to_id(task)
-        self.machine_id = graphs.to_id(machine)
+        self.task = task
+        self.machine = machine
 
-    def transform_graphs(self, pg : graphs.ProgramGraph, mg: graphs.MachineGraph):
-        mg[self.machine_id].stored_outputs.add(self.task_id)
-        pg[self.task_id].state = graphs.NodeState.COMPLETED
-        mg[self.machine_id].task = None
+    def transform_graphs(self):
+        self.machine.stored_outputs.add(self.task)
+        self.task.state = graphs.NodeState.COMPLETED
+        self.machine.task = None
 
