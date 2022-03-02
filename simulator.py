@@ -55,7 +55,7 @@ class Simulator:
         # fetch and compute
         machine.task = task
 
-    def _process_event(self, event : events.Event): 
+    def _process_event(self, event : events.Event):
         self.current_time = max(self.current_time, event.end_time)
         event.transform_graphs()
         
@@ -93,7 +93,11 @@ class Simulator:
             free_machines.remove(machine_choice)
             self._start_transfer(task, machine_choice)
 
-    def run(self): 
+    def run(self):
+
+        self.pg.draw(0.01)
+        self.mg.draw(5)
+
         while not self.pg.finished(): 
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.
@@ -103,7 +107,11 @@ class Simulator:
 
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
 
-            self.pg.draw()
-            self.mg.draw()
+            self.pg.draw(0.01)
+
+            try:
+                self.mg.draw(self.event_queue.queue[0].end_time - self.current_time + 0.01)
+            except IndexError:
+                self.mg.draw()
         
         return self.history
