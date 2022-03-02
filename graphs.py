@@ -114,7 +114,7 @@ class SuperGraph(object):
         yield from self.node_dict.values()
 
     @abstractmethod
-    def draw(self, blocking=-1, **kwargs):
+    def draw(self, blocking_time=-1, **kwargs):
         pass
 
     @abstractmethod
@@ -252,10 +252,13 @@ class ProgramGraph(SuperGraph):
         return set([n for n in self if n.is_free()])
 
 
-    def draw(self, blocking=-1, **kwargs):
+    def draw(self, blocking_time=-1, **kwargs):
+
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
+
+        plt.figure(0)
 
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]
@@ -268,10 +271,10 @@ class ProgramGraph(SuperGraph):
 
         nx.draw_networkx_edges(self.G, self.pos, self.G.edges, arrows=True, edge_color=costs, edge_cmap=plt.get_cmap('copper'))
 
-        if blocking:
+        if blocking_time == -1:
             plt.show()
         else:
-            plt.pause(0.001)
+            plt.pause(blocking_time)
 
     def snapshot(self):
         # TODO: for logging
@@ -385,15 +388,17 @@ class MachineGraph(SuperGraph):
     def snapshot(self):
         pass
 
-    def draw(self, blocking=True, **kwargs):
+    def draw(self, blocking_time=-1, **kwargs):
         """
         Draw this graph using matplotlib.
 
-        :param blocking: Whether to block the program while displaying the graph.
+        :param blocking_time: Whether to block the program while displaying the graph.
         :param linewidth_exp: Exponent to determine line width based on bandwidth, between 0 and 1.
         """
         colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         taskless_color = "#7788AA"
+
+        plt.figure(1)
 
         linewidth_exp = kwargs.get("linewidth_exp", 0.2)
 
@@ -418,10 +423,10 @@ class MachineGraph(SuperGraph):
         nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies,
                                arrows=False, edge_cmap=plt.get_cmap('copper'))
 
-        if blocking:
+        if blocking_time == -1:
             plt.show()
         else:
-            plt.pause(0.001)
+            plt.pause(blocking_time)
 
     def validate(self):
         # Check that there are no duplicate ids

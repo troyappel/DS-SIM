@@ -17,6 +17,8 @@ class Event(ABC):
     def transform_graphs(self):
         pass
 
+    # Todo: add recomputation of end time triggered by graph alterations. Use to model congestion.
+
     def __hash__(self):
         return self.uid
 
