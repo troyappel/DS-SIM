@@ -305,7 +305,7 @@ class MachineGraph(SuperGraph):
         super().__init__(nx.DiGraph(), nodes, edges, strict)
 
     def add_edge(self, en):
-        # implicitly create an edge in the other direction
+        # implicitly create an edge in the other direction. Use same base class implementation
         swapped_en = copy(en)
         swapped_en.in_node, swapped_en.out_node = swapped_en.out_node, swapped_en.in_node
 
@@ -362,6 +362,25 @@ class MachineGraph(SuperGraph):
         return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
 
     # def decrement_along_path
+
+    def get_path_edges(self, path):
+        return [self[(a,b)] for a,b in zip(path[:-1], path[1:])]
+
+    def get_path_latency(self, path):
+        lats = [e.latency for e in self.get_path_edges(path)]
+
+        # sum of all latencies
+        return sum(lats)
+
+    def get_path_bandwidth(self, path):
+        bws = [e.bandwidth for e in self.get_path_edges(path)]
+
+        # Bottlenecked at smallest bandwidth
+        return min(bws, default=0)
+
+    def alter_path_bandwidth(self, path, delta):
+        for e in self.get_path_edges(path):
+            e.banwidth += delta
 
     def snapshot(self):
         pass
