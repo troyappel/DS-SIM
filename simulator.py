@@ -93,7 +93,11 @@ class Simulator:
             free_machines.remove(machine_choice)
             self._start_transfer(task, machine_choice)
 
-    def run(self): 
+    def run(self):
+
+        self.pg.draw(0.01)
+        self.mg.draw(5)
+
         while not self.pg.finished(): 
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.

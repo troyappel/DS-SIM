@@ -463,7 +463,7 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
         times = [mg.network_distance_est(m_id, _m_id)[1] for _m_id in preds_machine_ids]
     else:
         edge_data_sizes = [pg[(_p, t_id)].data_size for _p in preds]
-        times = [mg.network_distance_real(m_id, _m_id, sz)[1] for _m_id, sz in zip(preds, edge_data_sizes)]
+        times = [mg.network_distance_real(m_id, _m_id, sz)[1] for _m_id, sz in zip(preds_machine_ids, edge_data_sizes)]
 
     # Max across fetch times
     return max(times)

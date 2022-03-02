@@ -1,17 +1,22 @@
 import graphs
 
-def generate_tree_program_graph(layers=4, branching=3, compute=4, data=1):
+def generate_tree_program_graph(layers=2, branching=3, compute=4, data=1, vflags=None):
     if layers == 0:
-        return [], []
+        return None, [], []
+
+    if vflags is None:
+        vflags = {"machine": 1, "rack_switch": 0, "root_switch": 0}
 
     # add coalescing node for this layer
-    c_node = graphs.ProgramNode(1)
+    c_node = graphs.ProgramNode(1,affinities=vflags)
 
     parents = [generate_tree_program_graph(layers - 1, branching, compute, data) for i in range(branching)]
 
-    parent_nodes, parent_edges = zip(*parents)
+    parent_trgs, parent_nodes, parent_edges = zip(*parents)
 
-    dependency_edges = [ProgramEdge(0,2, data_size=1) for ]
+    dependency_edges = [graphs.ProgramEdge(n_node.id, c_node.id, data_size=1) for n_node in parent_trgs if n_node is not None]
 
-    p_children
+    return c_node, [c_node] + list([item for sublist in parent_nodes for item in sublist]), list(dependency_edges) + list([item for sublist in parent_edges for item in sublist])
 
+
+print(generate_tree_program_graph())

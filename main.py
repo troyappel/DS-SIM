@@ -1,13 +1,13 @@
 from graphs import *
 from simulator import *
+import generate_programs
+import generate_networks
 
-p_nodes = [ProgramNode(1, 0, 1), ProgramNode(2, 1, 2), ProgramNode(3,2,3)]
-p_edges = [ProgramEdge(0,1), ProgramEdge(0,2, data_size=1)]
+_, p_nodes, p_edges = generate_programs.generate_tree_program_graph(layers=3)
 pg = ProgramGraph(p_nodes, p_edges)
 
-m_nodes = [MachineNode(5, 0), MachineNode(3, 1), MachineNode(2, 2)]
-m_edges = [MachineEdge(0, 1), MachineEdge(1, 2), MachineEdge(2, 0)]
-mg = MachineGraph(m_nodes, m_edges)
+
+mg = generate_networks.generate_tree_machine_network(8,2,1,1,1,1,1, use_disk=False)
 
 s = Simulator(mg, pg)
 s.run()

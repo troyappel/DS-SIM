@@ -1,7 +1,7 @@
 from graphs import *
 
 def generate_tree_machine_network(total_machines, machines_per_rack, compute_per_core, cores,  
-                                  disk_bandwidth, rack_bandwidth, root_bandwidth, rack_agg=False, root_agg=False):
+                                  disk_bandwidth, rack_bandwidth, root_bandwidth, rack_agg=False, root_agg=False, use_disk=True):
     """
     Generates a 2-level two-level tree-shaped switched network
     (the cluster configuration in the MapReduce paper)
@@ -17,7 +17,10 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
     machines = [MachineNode(compute_per_core * cores, i, {'machine'}) for i in range(total_machines)]
     rack_switches = [MachineNode(0, len(machines) + i, {'rack_switch'}) for i in range(num_racks)]
     root_switch = MachineNode(0, len(machines) + len(rack_switches), {'root_switch'})
-    disks = [MachineNode(0, len(machines) + len(rack_switches) + 1 + i, {'disk'}) for i in range(total_machines)]
+    if use_disk:
+        disks = [MachineNode(0, len(machines) + len(rack_switches) + 1 + i, {'disk'}) for i in range(total_machines)]
+    else:
+        disks = []
     nodes = machines + rack_switches + [root_switch] + disks
 
 
@@ -35,14 +38,15 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
         edges.append(MachineEdge(len(machines) + i, len(machines) + len(rack_switches), bandwidth=root_bandwidth))
 
     # connect machines to disks
-    for i in range(total_machines):
-        edges.append(MachineEdge(i, len(machines) + len(rack_switches) + 1 + i, bandwidth=disk_bandwidth))
+    if use_disk:
+        for i in range(total_machines):
+            edges.append(MachineEdge(i, len(machines) + len(rack_switches) + 1 + i, bandwidth=disk_bandwidth))
 
     return MachineGraph(nodes, edges)
 
 # example - rack/root bandwidths are often (1/10 Gbps), which seems reasonable based on the mapreduce paper
-mg = generate_tree_machine_network(9, 3, 1, 4, 100, 1, 10)
-mg.draw()
+# mg = generate_tree_machine_network(9, 3, 1, 4, 100, 1, 10)
+# mg.draw()
 
 
 
