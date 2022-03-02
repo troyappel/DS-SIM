@@ -31,7 +31,7 @@ class Simulator:
         """
         end_time = self.current_time + graphs.get_max_fetch_time(task, machine, self.pg, self.mg)
         
-        ev = events.TransferFinishEvent(end_time, self.pg, self.mg, task, machine, self.pg.pred(task))
+        ev = events.TransferEvent(self.current_time, end_time, self.pg, self.mg, task, machine, self.pg.pred(task))
         self.event_queue.put(ev)
 
         # The transfer has started, so the associated task is fetching
@@ -44,7 +44,7 @@ class Simulator:
     def _start_compute(self, task, machine): 
 
         end_time = self.current_time + time_to_run_task(self.pg[task], self.mg[machine])
-        ev = events.TaskFinishEvent(end_time, self.pg, self.mg, task, machine)
+        ev = events.TaskEvent(self.current_time, end_time, self.pg, self.mg, task, machine)
         self.event_queue.put(ev)
 
         # Compute has started; task is running. 
@@ -56,10 +56,10 @@ class Simulator:
         machine.task = task
 
     def _process_event(self, event : events.Event): 
-        self.current_time = max(self.current_time, event.time)
+        self.current_time = max(self.current_time, event.end_time)
         event.transform_graphs()
         
-        if(isinstance(event, events.TransferFinishEvent)): 
+        if(isinstance(event, events.TransferEvent)):
             # This needs to be made more complicated if we allow 
             # simultaneous fetching and compute (the machine might be busy with)
             # something else when we get here

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import copy
 
 from typing import Callable, List, Tuple, Set, Optional, Dict, Union, Type
 
@@ -92,10 +93,8 @@ class SuperGraph(object):
             assert ((id1, id2) not in self.node_dict)
             assert ((id1, id2) not in self.G.edges)
 
-        ids = sorted([id1, id2], key=int)
-
-        self.G.add_edge(ids[0], ids[1])
-        self.edge_dict[(ids[0], ids[1])] = en
+        self.G.add_edge(id1, id2)
+        self.edge_dict[(id1, id2)] = en
 
     def add_edges(self, en_list):
         for en in en_list:
@@ -232,7 +231,7 @@ class ProgramGraph(SuperGraph):
     def out_edges(self, key):
         eds = self.G.out_edges(to_id(key))
         return [self.edge_dict[ed] for ed in eds]
-    
+
     def up_next(self): 
         '''
         Returns list of graphs whose predecessors are all complete
@@ -303,7 +302,16 @@ class MachineGraph(SuperGraph):
     Generally works
     """
     def __init__(self, nodes=None, edges=None, strict=True):
-        super().__init__(nx.Graph(), nodes, edges, strict)
+        super().__init__(nx.DiGraph(), nodes, edges, strict)
+
+    def add_edge(self, en):
+        # implicitly create an edge in the other direction
+        swapped_en = copy(en)
+        swapped_en.in_node, swapped_en.out_node = swapped_en.out_node, swapped_en.in_node
+
+        super(MachineGraph, self).add_edge(en)
+        super(MachineGraph, self).add_edge(swapped_en)
+
 
     def neighbors(self, key):
         neigh = self.G.neighbors(to_id(key))
@@ -328,8 +336,9 @@ class MachineGraph(SuperGraph):
             self.G.edges[edge]['weight'] = 1 / self.edge_dict[edge].bandwidth
 
         # Get path
+        path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
-        return dist
+        return path, dist
 
     def network_distance_est(self, m1, m2):
         return self._network_distance_est_id(to_id(m1), to_id(m2))
@@ -339,18 +348,20 @@ class MachineGraph(SuperGraph):
 
         # Zero distance to self
         if id1 == id2:
-            return 0
+            return [], 0
 
         for edge in self.G.edges:
             self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / self.edge_dict[edge].bandwidth
 
         # Get path
+        path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
-        return dist
-
+        return path, dist
 
     def network_distance_real(self, m1, m2, data_size):
         return self._network_distance_real_id(to_id(m1), to_id(m2), data_size)
+
+    # def decrement_along_path
 
     def snapshot(self):
         pass
@@ -385,7 +396,8 @@ class MachineGraph(SuperGraph):
         latencies = [self.edge_dict[tup].latency for tup in self.G.edges]
         bandwidths = [1 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
 
-        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies, edge_cmap=plt.get_cmap('copper'))
+        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies,
+                               arrows=False, edge_cmap=plt.get_cmap('copper'))
 
         if blocking:
             plt.show()
@@ -424,10 +436,10 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
 
     # Calculate fetch time for each
     if heuristic:
-        times = [mg.network_distance_est(m_id, _m_id) for _m_id in preds_machine_ids]
+        times = [mg.network_distance_est(m_id, _m_id)[1] for _m_id in preds_machine_ids]
     else:
         edge_data_sizes = [pg[(_p, t_id)].data_size for _p in preds]
-        times = [mg.network_distance_real(m_id, _m_id, sz) for _m_id, sz in zip(preds, edge_data_sizes)]
+        times = [mg.network_distance_real(m_id, _m_id, sz)[1] for _m_id, sz in zip(preds, edge_data_sizes)]
 
     # Max across fetch times
     return max(times)
