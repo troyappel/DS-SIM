@@ -7,7 +7,7 @@ _, p_nodes, p_edges = generate_programs.generate_tree_program_graph(layers=3,bra
 pg = ProgramGraph(p_nodes, p_edges)
 
 
-mg = generate_networks.generate_tree_machine_network(8,2,1,1,1,1,3, use_disk=False)
+mg = generate_networks.generate_tree_machine_network(8,2,1,1,1,1,0.5, use_disk=False)
 
 s = Simulator(mg, pg)
 s.run()

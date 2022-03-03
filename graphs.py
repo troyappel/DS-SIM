@@ -256,7 +256,7 @@ class ProgramGraph(SuperGraph):
 
         colors = ["#AAAAAA", "#0000FF", "#00FFFF", "#00FF00", "#FFFF00"]
         if self.pos is None:
-            self.pos = nx.spring_layout(self.G)
+            self.pos = nx.kamada_kawai_layout(self.G)
 
         plt.figure(0)
 
@@ -311,6 +311,7 @@ class MachineGraph(SuperGraph):
         # implicitly create an edge in the other direction. Use same base class implementation
         swapped_en = copy(en)
         swapped_en.in_node, swapped_en.out_node = swapped_en.out_node, swapped_en.in_node
+        swapped_en.id = (swapped_en.in_node, swapped_en.out_node)
 
         super(MachineGraph, self).add_edge(en)
         super(MachineGraph, self).add_edge(swapped_en)
@@ -403,7 +404,7 @@ class MachineGraph(SuperGraph):
         plt.figure(1)
         plt.clf()
 
-        linewidth_exp = kwargs.get("linewidth_exp", 1)
+        linewidth_exp = kwargs.get("linewidth_exp", 0.2)
 
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
@@ -421,7 +422,7 @@ class MachineGraph(SuperGraph):
 
         # Draw based on cost of edge
         latencies = [self.edge_dict[tup].latency for tup in self.G.edges]
-        bandwidths = [1 + 4* self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
+        bandwidths = [0.5 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
 
         # bandwidths = list(range(len(bandwidths)))
         # print(bandwidths)

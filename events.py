@@ -65,16 +65,15 @@ class TransferEvent(Event):
         assert self.task.state != graphs.NodeState.RUNNING
         self.created_transfers.add(self.p_edge)
 
-        print(self.machine.id, self.prev_machine.id)
-
     def transform_graphs(self):
-        # The machine who requested a fetch now has all the data associated
+        # The machine who requested a fetch now has the data associated
         # with this transfer
         self.machine.ready_inputs.update([self.prev_task])
 
         # Released used bandwidth
         self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
 
+        # If this is the last transfer, mark the computation
         all_preds = set([p for p in self.pg.pred(self.task)])
 
         if all_preds.issubset(self.machine.ready_inputs):
@@ -91,21 +90,25 @@ class TransferEvent(Event):
         if self.machine == self.prev_machine:
             return
 
+        # We should not be transfering data to a running/finished task
         assert self.task.state != graphs.NodeState.COMPLETED
         assert self.task.state != graphs.NodeState.RUNNING
 
+        # Calculate how much data has been transferred so far
         self.transfer_progress += dt * self.used_bandwidth
         assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
 
         # Undo change in bandwidth
         self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
 
+        # Calculate new bandwidth and alter that path
         self.used_bandwidth = self.mg.get_path_bandwidth(self.path)
-
         self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth)
 
+        # Determine new end time based on new bandwidth
         self.end_time = self.last_time + (self.p_edge.data_size - self.transfer_progress) / (self.used_bandwidth + eps)
 
+        # Save the time so we can get next delta time
         self.last_time = time
 
 class TaskEvent(Event):
