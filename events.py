@@ -46,7 +46,9 @@ class TransferEvent(Event):
         self.task: graphs.ProgramNode = task
         self.prev_task = data
 
+
         self.p_edge = self.pg[(self.prev_task, self.task)]
+
 
         self.prev_machine = self.prev_task.bound_machine
 
@@ -62,6 +64,8 @@ class TransferEvent(Event):
         assert (self.p_edge) not in self.created_transfers
         assert self.task.state != graphs.NodeState.RUNNING
         self.created_transfers.add(self.p_edge)
+
+        print(self.machine.id, self.prev_machine.id)
 
     def transform_graphs(self):
         # The machine who requested a fetch now has all the data associated

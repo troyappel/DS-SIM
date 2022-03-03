@@ -401,8 +401,9 @@ class MachineGraph(SuperGraph):
         taskless_color = "#7788AA"
 
         plt.figure(1)
+        plt.clf()
 
-        linewidth_exp = kwargs.get("linewidth_exp", 0.2)
+        linewidth_exp = kwargs.get("linewidth_exp", 1)
 
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
@@ -420,10 +421,15 @@ class MachineGraph(SuperGraph):
 
         # Draw based on cost of edge
         latencies = [self.edge_dict[tup].latency for tup in self.G.edges]
-        bandwidths = [1 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
+        bandwidths = [1 + 4* self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
 
-        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies,
-                               arrows=False, edge_cmap=plt.get_cmap('copper'))
+        # bandwidths = list(range(len(bandwidths)))
+        # print(bandwidths)
+        # print(self.G.edges)
+        #
+        # print(min(bandwidths))
+
+        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  connectionstyle='arc3,rad=0.1')
 
         if blocking_time == -1:
             plt.show()
