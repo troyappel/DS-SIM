@@ -31,6 +31,7 @@ class Simulator:
         """
         end_time = self.current_time + graphs.get_max_fetch_time(task, machine, self.pg, self.mg)
 
+
         # Create a transfer
         for pred_task in self.pg.pred(task):
             time = self.mg.network_distance_real(machine, pred_task.bound_machine, self.pg[(pred_task, task)].data_size)
@@ -38,8 +39,8 @@ class Simulator:
             heapq.heappush(self.event_queue, ev)
 
         # The transfer has started, so the associated task is fetching
-        self.pg[task].state = graphs.NodeState.FETCHING 
-        
+        self.pg[task].state = graphs.NodeState.FETCHING
+
         # We will, at this point, definitely run task on machine
         self.pg[task].bound_machine = machine
 
@@ -99,7 +100,12 @@ class Simulator:
                 continue
             
             free_machines.remove(machine_choice)
-            self._start_transfer(task, machine_choice)
+
+            if len(self.pg.pred(task)) == 0:
+                self.pg[task].bound_machine = machine_choice
+                self._start_compute(task, machine_choice)
+            else:
+                self._start_transfer(task, machine_choice)
 
     def run(self):
 
