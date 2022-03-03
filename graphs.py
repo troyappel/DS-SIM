@@ -23,6 +23,17 @@ class NodeState(Enum):
     RUNNING = 3
     COMPLETED = 4
 
+def program_colors(state : NodeState): 
+    table = {
+        NodeState.UNSCHEDULED: "#F05C4F",
+        NodeState.FETCHING: "#E68943",
+        NodeState.READY: "#D8315B",
+        NodeState.RUNNING: "#FFBF36",
+        NodeState.COMPLETED: "#5DC24E",
+    }
+    return table[state]
+
+
 def to_id(key):
     if isinstance(key, ProgramNode):
         return key.id
@@ -254,7 +265,7 @@ class ProgramGraph(SuperGraph):
 
     def draw(self, blocking_time=-1, **kwargs):
 
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
+        # colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
 
@@ -262,7 +273,7 @@ class ProgramGraph(SuperGraph):
 
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]
-            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=program_colors(ns))
 
         nx.draw_networkx_labels(self.G, self.pos)
 
@@ -395,7 +406,7 @@ class MachineGraph(SuperGraph):
         :param blocking_time: Whether to block the program while displaying the graph.
         :param linewidth_exp: Exponent to determine line width based on bandwidth, between 0 and 1.
         """
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
+        # colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         taskless_color = "#7788AA"
 
         plt.figure(1)
@@ -410,7 +421,7 @@ class MachineGraph(SuperGraph):
 
         for ns in NodeState:
             nodes_ns = [n for n in tasked if self[n].task.state == ns]
-            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=colors[ns.value])
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=program_colors(ns))
 
         nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)
 
