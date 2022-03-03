@@ -254,7 +254,7 @@ class ProgramGraph(SuperGraph):
 
     def draw(self, blocking_time=-1, **kwargs):
 
-        colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
+        colors = ["#AAAAAA", "#0000FF", "#00FFFF", "#00FF00", "#FFFF00"]
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
 
@@ -349,12 +349,14 @@ class MachineGraph(SuperGraph):
     @functools.cache
     def _network_distance_real_id(self, id1, id2, data_size):
 
+        eps = 1e-4
+
         # Zero distance to self
         if id1 == id2:
             return [], 0
 
         for edge in self.G.edges:
-            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / self.edge_dict[edge].bandwidth
+            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / (self.edge_dict[edge].bandwidth + eps)
 
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
@@ -383,7 +385,7 @@ class MachineGraph(SuperGraph):
 
     def alter_path_bandwidth(self, path, delta):
         for e in self.get_path_edges(path):
-            e.banwidth += delta
+            e.bandwidth += delta
 
     def snapshot(self):
         pass

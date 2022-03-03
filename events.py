@@ -38,6 +38,8 @@ class Event(ABC):
 class TransferEvent(Event):
     __hash__ = Event.__hash__
 
+    created_transfers = set()
+
     def __init__(self, start_time, end_time, pg: graphs.ProgramGraph, mg: graphs.MachineGraph, task, machine, data):
         super().__init__(start_time, end_time, pg, mg)
         self.machine: graphs.MachineNode = machine
@@ -57,25 +59,39 @@ class TransferEvent(Event):
 
         self.recalculate_end(self.start_time)
 
+        assert (self.p_edge) not in self.created_transfers
+        assert self.task.state != graphs.NodeState.RUNNING
+        self.created_transfers.add(self.p_edge)
+
     def transform_graphs(self):
         # The machine who requested a fetch now has all the data associated
         # with this transfer
-        self.machine.ready_inputs.update(self.prev_task)
+        self.machine.ready_inputs.update([self.prev_task])
 
         # Released used bandwidth
         self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
 
-        all_preds = [p for p in self.pg.pred(self.task)]
+        all_preds = set([p for p in self.pg.pred(self.task)])
 
-        if self.machine.ready_inputs.issubset(all_preds):
+        if all_preds.issubset(self.machine.ready_inputs):
+            assert self.task.state != graphs.NodeState.COMPLETED
+            assert self.task.state != graphs.NodeState.RUNNING
             self.task.state = graphs.NodeState.READY
 
     def recalculate_end(self, time):
         # Calculate amount transferred based on bandwidth
         dt = time - self.last_time
 
+        eps = 1e-4
+
+        if self.machine == self.prev_machine:
+            return
+
+        assert self.task.state != graphs.NodeState.COMPLETED
+        assert self.task.state != graphs.NodeState.RUNNING
+
         self.transfer_progress += dt * self.used_bandwidth
-        assert self.transfer_progress < 1.5 # Should not finish just by recalculation
+        assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
 
         # Undo change in bandwidth
         self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
@@ -84,7 +100,7 @@ class TransferEvent(Event):
 
         self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth)
 
-        self.end_time = self.last_time + (self.p_edge.data_size - self.transfer_progress) / self.used_bandwidth
+        self.end_time = self.last_time + (self.p_edge.data_size - self.transfer_progress) / (self.used_bandwidth + eps)
 
         self.last_time = time
 
