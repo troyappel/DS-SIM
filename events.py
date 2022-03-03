@@ -18,6 +18,8 @@ class Event(ABC):
         pass
 
     # Todo: add recomputation of end time triggered by graph alterations. Use to model congestion.
+    def recalculate_end(self, time):
+        pass
 
     def __hash__(self):
         return self.uid
@@ -31,6 +33,7 @@ class Event(ABC):
     def __index__(self):
         return int(self)
 
+
 # Event for when ALL dependencies of a task are retrieved
 class TransferEvent(Event):
     __hash__ = Event.__hash__
@@ -39,13 +42,51 @@ class TransferEvent(Event):
         super().__init__(start_time, end_time, pg, mg)
         self.machine: graphs.MachineNode = machine
         self.task: graphs.ProgramNode = task
-        self.data = data
+        self.prev_task = data
+
+        self.p_edge = self.pg[(self.prev_task, self.task)]
+
+        self.prev_machine = self.prev_task.bound_machine
+
+        self.transfer_progress = 0
+        self.used_bandwidth = 0
+
+        self.last_time = self.start_time
+
+        self.path, _ = self.mg.network_distance_real(self.prev_machine, self.machine, self.p_edge.data_size)
+
+        self.recalculate_end(self.start_time)
 
     def transform_graphs(self):
-        self.task.state = graphs.NodeState.READY
-        # The machine who requested a fetch now has all the data associated 
+        # The machine who requested a fetch now has all the data associated
         # with this transfer
-        self.machine.ready_inputs.update(self.data)
+        self.machine.ready_inputs.update(self.prev_task)
+
+        # Released used bandwidth
+        self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
+
+        all_preds = [p for p in self.pg.pred(self.task)]
+
+        if self.machine.ready_inputs.issubset(all_preds):
+            self.task.state = graphs.NodeState.READY
+
+    def recalculate_end(self, time):
+        # Calculate amount transferred based on bandwidth
+        dt = time - self.last_time
+
+        self.transfer_progress += dt * self.used_bandwidth
+        assert self.transfer_progress < 1.5 # Should not finish just by recalculation
+
+        # Undo change in bandwidth
+        self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
+
+        self.used_bandwidth = self.mg.get_path_bandwidth(self.path)
+
+        self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth)
+
+        self.end_time = self.last_time + (self.p_edge.data_size - self.transfer_progress) / self.used_bandwidth
+
+        self.last_time = time
 
 class TaskEvent(Event):
     __hash__ = Event.__hash__

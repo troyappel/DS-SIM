@@ -3,7 +3,7 @@ from simulator import *
 import generate_programs
 import generate_networks
 
-_, p_nodes, p_edges = generate_programs.generate_tree_program_graph(layers=3)
+_, p_nodes, p_edges = generate_programs.generate_tree_program_graph(layers=5,branching=3)
 pg = ProgramGraph(p_nodes, p_edges)
 
 
