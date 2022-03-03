@@ -7,6 +7,8 @@ from typing import Callable, List, Tuple, Set, Optional, Dict, Union, Type
 
 import collections
 
+# added b/c of weird networkx error with python3.10: https://githubmemory.com/index.php/@networkx
+import importlib.machinery
 import networkx as nx
 import matplotlib.pyplot as plt
 import functools
@@ -267,7 +269,7 @@ class ProgramGraph(SuperGraph):
 
         # colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
         if self.pos is None:
-            self.pos = nx.spring_layout(self.G)
+            self.pos = nx.spring_layout(self.G, seed=1)
 
         plt.figure(0)
 
