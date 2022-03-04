@@ -57,6 +57,7 @@ class TransferEvent(Event):
 
         self.last_time = self.start_time
 
+        # Todo: generated path is wrong
         self.path, _ = self.mg.network_distance_real(self.prev_machine, self.machine, self.p_edge.data_size)
 
         self.recalculate_end(self.start_time)

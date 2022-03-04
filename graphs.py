@@ -342,6 +342,10 @@ class MachineGraph(SuperGraph):
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+
+        assert path[0] == id1
+        assert path[-1] == id2
+
         return path, dist
 
     def network_distance_est(self, m1, m2):
@@ -362,6 +366,11 @@ class MachineGraph(SuperGraph):
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+
+        assert path[0] == id1
+        assert path[-1] == id2
+
+
         return path, dist
 
     def network_distance_real(self, m1, m2, data_size):
@@ -370,7 +379,10 @@ class MachineGraph(SuperGraph):
     # def decrement_along_path
 
     def get_path_edges(self, path):
-        return [self[(a,b)] for a,b in zip(path[:-1], path[1:])]
+        a = [self[(a,b)] for a,b in zip(path[:-1], path[1:])]
+        if len(path) > 1:
+            assert len(a) == len(path) - 1
+        return a
 
     def get_path_latency(self, path):
         lats = [e.latency for e in self.get_path_edges(path)]
@@ -404,7 +416,7 @@ class MachineGraph(SuperGraph):
         plt.figure(1)
         plt.clf()
 
-        linewidth_exp = kwargs.get("linewidth_exp", 0.2)
+        linewidth_exp = kwargs.get("linewidth_exp", 0.5)
 
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)

@@ -108,6 +108,8 @@ class Simulator:
                 # Aff = 0 means cannot run
                 if machine in free_machines and aff > 0:
                     machine_choice = machine
+                    break
+
             # Impossible to run this task
             if machine_choice is None: 
                 continue
