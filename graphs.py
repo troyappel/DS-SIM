@@ -14,26 +14,31 @@ import matplotlib.pyplot as plt
 import functools
 import math
 
-from enum import Enum
+from enum import IntEnum
 
 from utils import *
 
-class NodeState(Enum):
+class NodeState(IntEnum):
+    _ignore_ = ['table']
+
     UNSCHEDULED = 0
     FETCHING = 1
     READY = 2
     RUNNING = 3
     COMPLETED = 4
 
-def program_colors(state : NodeState): 
-    table = {
-        NodeState.UNSCHEDULED: "#F05C4F",
-        NodeState.FETCHING: "#E68943",
-        NodeState.READY: "#D8315B",
-        NodeState.RUNNING: "#FFBF36",
-        NodeState.COMPLETED: "#5DC24E",
-    }
-    return table[state]
+    @property
+    def tbl(self):
+        return {
+            self.UNSCHEDULED: "#F05C4F",
+            self.FETCHING: "#E68943",
+            self.READY: "#D8315B",
+            self.RUNNING: "#FFBF36",
+            self.COMPLETED: "#5DC24E",
+        }
+
+    def color(self):
+        return self.tbl[self]
 
 
 def to_id(key):
@@ -276,7 +281,7 @@ class ProgramGraph(SuperGraph):
 
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]
-            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=program_colors(ns))
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=ns.color())
 
         nx.draw_networkx_labels(self.G, self.pos)
 
@@ -440,7 +445,7 @@ class MachineGraph(SuperGraph):
 
         for ns in NodeState:
             nodes_ns = [n for n in tasked if self[n].task.state == ns]
-            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=program_colors(ns))
+            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=ns.color())
 
         nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)
 
