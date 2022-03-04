@@ -272,6 +272,7 @@ class ProgramGraph(SuperGraph):
             self.pos = nx.kamada_kawai_layout(self.G)
 
         plt.figure(0)
+        plt.clf()
 
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]

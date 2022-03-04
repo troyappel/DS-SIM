@@ -45,7 +45,7 @@ class Simulator:
 
         # We will, at this point, definitely run task on machine
         self.pg[task].bound_machine = machine
-        machine.task = task
+        # machine.task = task
 
 
     def _start_compute(self, task, machine):
@@ -63,7 +63,7 @@ class Simulator:
         # TODO: Set this here or when the transfer gets started?
         # This will depend on whether we want to support simultaneous 
         # fetch and compute
-        # machine.task = task
+        machine.task = task
 
     def _process_event(self, event : events.Event):
         self.current_time = max(self.current_time, event.end_time)
