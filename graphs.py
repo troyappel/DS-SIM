@@ -267,9 +267,9 @@ class ProgramGraph(SuperGraph):
 
     def draw(self, blocking_time=-1, **kwargs):
 
-        # colors = ["#AAAAAA", "#ACC8DC", "#D8315B", "#1E1B18", "#FF5733"]
+        colors = ["#AAAAAA", "#0000FF", "#00FFFF", "#00FF00", "#FFFF00"]
         if self.pos is None:
-            self.pos = nx.spring_layout(self.G, seed=1)
+            self.pos = nx.kamada_kawai_layout(self.G)
 
         plt.figure(0)
 
@@ -324,6 +324,7 @@ class MachineGraph(SuperGraph):
         # implicitly create an edge in the other direction. Use same base class implementation
         swapped_en = copy(en)
         swapped_en.in_node, swapped_en.out_node = swapped_en.out_node, swapped_en.in_node
+        swapped_en.id = (swapped_en.in_node, swapped_en.out_node)
 
         super(MachineGraph, self).add_edge(en)
         super(MachineGraph, self).add_edge(swapped_en)
@@ -354,6 +355,10 @@ class MachineGraph(SuperGraph):
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+
+        assert path[0] == id1
+        assert path[-1] == id2
+
         return path, dist
 
     def network_distance_est(self, m1, m2):
@@ -362,16 +367,23 @@ class MachineGraph(SuperGraph):
     @functools.cache
     def _network_distance_real_id(self, id1, id2, data_size):
 
+        eps = 1e-4
+
         # Zero distance to self
         if id1 == id2:
             return [], 0
 
         for edge in self.G.edges:
-            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / self.edge_dict[edge].bandwidth
+            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / (self.edge_dict[edge].bandwidth + eps)
 
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
         dist = nx.shortest_path_length(self.G, id1, id2, 'weight')
+
+        assert path[0] == id1
+        assert path[-1] == id2
+
+
         return path, dist
 
     def network_distance_real(self, m1, m2, data_size):
@@ -380,7 +392,10 @@ class MachineGraph(SuperGraph):
     # def decrement_along_path
 
     def get_path_edges(self, path):
-        return [self[(a,b)] for a,b in zip(path[:-1], path[1:])]
+        a = [self[(a,b)] for a,b in zip(path[:-1], path[1:])]
+        if len(path) > 1:
+            assert len(a) == len(path) - 1
+        return a
 
     def get_path_latency(self, path):
         lats = [e.latency for e in self.get_path_edges(path)]
@@ -396,7 +411,7 @@ class MachineGraph(SuperGraph):
 
     def alter_path_bandwidth(self, path, delta):
         for e in self.get_path_edges(path):
-            e.banwidth += delta
+            e.bandwidth += delta
 
     def snapshot(self):
         pass
@@ -412,8 +427,9 @@ class MachineGraph(SuperGraph):
         taskless_color = "#7788AA"
 
         plt.figure(1)
+        plt.clf()
 
-        linewidth_exp = kwargs.get("linewidth_exp", 0.2)
+        linewidth_exp = kwargs.get("linewidth_exp", 0.5)
 
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
@@ -431,10 +447,15 @@ class MachineGraph(SuperGraph):
 
         # Draw based on cost of edge
         latencies = [self.edge_dict[tup].latency for tup in self.G.edges]
-        bandwidths = [1 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
+        bandwidths = [0.5 + self.edge_dict[tup].bandwidth**linewidth_exp for tup in self.G.edges]
 
-        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  edge_color=latencies,
-                               arrows=False, edge_cmap=plt.get_cmap('copper'))
+        # bandwidths = list(range(len(bandwidths)))
+        # print(bandwidths)
+        # print(self.G.edges)
+        #
+        # print(min(bandwidths))
+
+        nx.draw_networkx_edges(self.G, self.pos, self.G.edges, width=bandwidths,  connectionstyle='arc3,rad=0.1')
 
         if blocking_time == -1:
             plt.show()
