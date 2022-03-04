@@ -45,6 +45,7 @@ class Simulator:
 
         # We will, at this point, definitely run task on machine
         self.pg[task].bound_machine = machine
+        machine.task = task
 
 
     def _start_compute(self, task, machine):
@@ -62,7 +63,7 @@ class Simulator:
         # TODO: Set this here or when the transfer gets started?
         # This will depend on whether we want to support simultaneous 
         # fetch and compute
-        machine.task = task
+        # machine.task = task
 
     def _process_event(self, event : events.Event):
         self.current_time = max(self.current_time, event.end_time)
@@ -123,7 +124,7 @@ class Simulator:
                 assert task.state == graphs.NodeState.UNSCHEDULED
                 self._start_transfer(task, machine_choice)
 
-    def run(self):
+    def run(self, speedup = 5):
 
         self.pg.draw(0.01)
         self.mg.draw(5)
@@ -142,12 +143,13 @@ class Simulator:
 
 
             try:
-                t = self.event_queue[0].end_time - self.current_time
+                t = (self.event_queue[0].end_time - self.current_time) / speedup
 
                 print(self.event_queue)
 
                 self.mg.draw(max(t, 0.01))
             except IndexError:
                 self.mg.draw()
+            print(self.current_time)
         
         return self.history
