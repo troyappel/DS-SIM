@@ -43,4 +43,4 @@ pg = ProgramGraph(p_nodes, p_edges)
 
 # run simulation
 s = Simulator(mg, pg)
-s.run()
+s.run(outfile="test.txt", draw_visualization=False)

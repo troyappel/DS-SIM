@@ -1,13 +1,11 @@
-from queue import PriorityQueue
 import heapq
-from collections import namedtuple
+from turtle import speed
 import events
 import graphs
 from typing import List
-
-# Simple record type to represent a freeze frame of our 
-# simulation, for reconstructing data and visualizations
-Snapshot = namedtuple('Snapshot', ['time', 'mg', 'pg'])
+import pickle
+from process_outputs import prepare_snapshot_list, visualize_history
+from utils import Snapshot
 
 def time_to_run_task(t, m, eps=1e-5):
     """
@@ -124,32 +122,36 @@ class Simulator:
                 assert task.state == graphs.NodeState.UNSCHEDULED
                 self._start_transfer(task, machine_choice)
 
-    def run(self, speedup = 5):
+    def _write_history(self, filename): 
+        try: 
+            result = pickle.dumps(self.history)
+            # print(result)
+            with open(filename, "wb") as output:
+                output.write(result)
+            return True
+        except: 
+            return False
 
-        self.pg.draw(0.01)
-        self.mg.draw(5)
-
+    def run(self, speedup = 5, outfile = None, draw_visualization=True):
+        self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
         while not self.pg.finished(): 
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.
             if len(self.event_queue) > 0:
                 self._process_event(heapq.heappop(self.event_queue))
+            
             self._start_ready()
             self._schedule()
 
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
 
-            self.pg.draw(0.01)
-
-
-            try:
-                t = (self.event_queue[0].end_time - self.current_time) / speedup
-
-                print(self.event_queue)
-
-                self.mg.draw(max(t, 0.01))
-            except IndexError:
-                self.mg.draw()
-            print(self.current_time)
+        if outfile is not None: 
+            if self._write_history(outfile): 
+                print(f"Wrote file to {outfile}")
+            else: 
+                print("Writing history failed")
         
+        if draw_visualization:
+            visualize_history(prepare_snapshot_list(self.history), speedup=speedup)
+
         return self.history
