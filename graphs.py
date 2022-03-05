@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 from typing import Callable, List, Tuple, Set, Optional, Dict, Union, Type
+import pickle 
 
 import collections
 
@@ -135,9 +136,8 @@ class SuperGraph(object):
     def draw(self, blocking_time=-1, **kwargs):
         pass
 
-    @abstractmethod
     def snapshot(self):
-        pass
+        return pickle.dumps(self)
 
     @abstractmethod
     def validate(self):
@@ -168,6 +168,18 @@ class ProgramNode(SuperNode):
             self.dist_affinity = lambda x: 1 / (1 + x)
         else:
             self.dist_affinity = dist_affinity
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Pickle can't deal with local lambdas, so we 
+        # need to skip dist_affinity
+        del state["dist_affinity"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Add dist_affinity back since it doesn't exist in the pickle
+        self.dist_affinity = None
 
 
 class ProgramEdge(SuperEdge):
@@ -295,10 +307,6 @@ class ProgramGraph(SuperGraph):
         else:
             plt.pause(blocking_time)
 
-    def snapshot(self):
-        # TODO: for logging
-        pass
-
     def validate(self):
         # Check that there are no cycles
         try:
@@ -419,8 +427,6 @@ class MachineGraph(SuperGraph):
         for e in self.get_path_edges(path):
             e.bandwidth += delta
 
-    def snapshot(self):
-        pass
 
     def draw(self, blocking_time=-1, **kwargs):
         """
@@ -486,7 +492,6 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
 
     preds = pg.pred(t_id)
 
-    #TODO: @Troy, it could also be a machine that has it in ready_inputs, perhaps. 
     preds_machine_ids = [p.bound_machine for p in preds]
 
     if any(p.state != NodeState.COMPLETED for p in preds):
