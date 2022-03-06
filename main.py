@@ -27,10 +27,5 @@ reloaded_history = load_history(outfilename)
 
 # # Note that reloaded_history and in_memory_history are equivalent
 
-<<<<<<< HEAD
 # Now can visualize again from these representations
 visualize_history(in_memory_history, speedup=5, merge_frames_window=.01)
-=======
-# # Now can visualize again from these representations
-visualize_history(in_memory_history, print_time=False)
->>>>>>> 085e48a4c788f9e4d627d5b8974dc5585ce045c7
