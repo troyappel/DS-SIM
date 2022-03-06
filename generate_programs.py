@@ -1,5 +1,6 @@
+import math
 import graphs
-
+import random
 
 def generate_type_affinity(type):
     '''
@@ -74,5 +75,29 @@ def generate_mapreduce(num_map, num_reduce, map_compute, reduce_compute, map_inp
     p_edges = mapper_in + mapper_out + mapper_to_reducer + reducer_out
     return graphs.ProgramGraph(p_nodes, p_edges)
 
+def generate_dask(layers=2, num_per_layer=4, density=0.5, min_compute=1, max_compute=4, data=1, affinities=None):
+    assert(density <= 1)
+    
+    dist_func = lambda d: 1/(1+d**2)
+
+    nodes = []
+    edges = []
+    for layer_num in range(layers):
+        layer_compute = random.randint(min_compute, max_compute)
+
+        for node_num in range(num_per_layer):
+            node_id = f'{layer_num}-{node_num}'
+            nodes.append(graphs.ProgramNode(layer_compute, id=node_id, dist_affinity=dist_func))
+
+            if layer_num < layers - 1:
+                for edge_id in random.sample(range(num_per_layer), math.ceil(density * num_per_layer)):
+                    edges.append(graphs.ProgramEdge(node_id, f'{layer_num+1}-{edge_id}', data_size=data))
+    
+    return graphs.ProgramGraph(nodes, edges)
+
+
 # pg = generate_mapreduce(2, 1, 1, 1, 1, 1, 1)
 # pg.draw()
+
+pg = generate_dask(4,3,0.4,1,6)
+pg.draw()
