@@ -153,4 +153,4 @@ class Simulator:
         if draw_visualization:
             visualize_history(prepare_snapshot_list(self.history), speedup=speedup)
 
-        return self.history
+        return prepare_snapshot_list(self.history)
