@@ -44,7 +44,7 @@ def generate_mapreduce(num_map, num_reduce, map_compute, reduce_compute, map_inp
         Generates a mapreduce computation graph for an arbitrary number of mappers/reducers, compute costs, and 
         amount of data transferred
     '''
-
+    print(f"Constructing mapreduce program graph with {num_map} mappers and {num_reduce} reducers")
     dist_func = lambda d: 1/(1+d**2)
 
     # mapper nodes
@@ -73,7 +73,10 @@ def generate_mapreduce(num_map, num_reduce, map_compute, reduce_compute, map_inp
 
     p_nodes = mapper_disk_input + mappers + mapper_disk_output + reducers + reducer_disk_output
     p_edges = mapper_in + mapper_out + mapper_to_reducer + reducer_out
-    return graphs.ProgramGraph(p_nodes, p_edges)
+    print("Constructed nodes and edges; building graph.")
+    result = graphs.ProgramGraph(p_nodes, p_edges)
+    print("Finished building graph\n")
+    return result
 
 def generate_dask(layers=2, num_per_layer=4, density=0.5, min_compute=1, max_compute=4, data=1, affinities=None):
     assert(density <= 1)
