@@ -47,7 +47,7 @@ class Simulator:
 
     def _start_compute(self, task, machine):
 
-        print(f'Task: {task.id} scheduled on {machine.id}')
+        # print(f'Task: {task.id} scheduled on {machine.id}')
         assert task.state != graphs.NodeState.RUNNING
         assert task.state != graphs.NodeState.COMPLETED
 

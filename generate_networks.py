@@ -31,7 +31,7 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
     edges = []
     # connect machines to racks
     for i in range(total_machines):
-        edges.append(MachineEdge(f'machine_{i}', f'rack_switch_{i//num_racks}', bandwidth=rack_bandwidth))
+        edges.append(MachineEdge(f'machine_{i}', f'rack_switch_{i//machines_per_rack}', bandwidth=rack_bandwidth))
 
     # connect racks to root
     for i in range(num_racks):
