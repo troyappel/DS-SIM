@@ -282,18 +282,26 @@ class ProgramGraph(SuperGraph):
         return set([n for n in self if n.is_free()])
 
 
-    def draw(self, blocking_time=-1, **kwargs):
+    def draw(self, blocking_time=-1, pos_override=None, **kwargs):
+        # colors = ["#AAAAAA", "#0000FF", "#00FFFF", "#00FF00", "#FFFF00"]
 
-        colors = ["#AAAAAA", "#0000FF", "#00FFFF", "#00FF00", "#FFFF00"]
+        if pos_override is not None: 
+            self.pos = pos_override
+
         if self.pos is None:
             self.pos = nx.kamada_kawai_layout(self.G)
 
         plt.figure(0)
         plt.clf()
-
+        all_nodes = []
+        all_colors = []
         for ns in NodeState:
             nodes_ns = [n for n in self.G if self.node_dict[n].state == ns]
-            nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=ns.color())
+            colors = [ns.color()]*len(nodes_ns)
+            all_nodes += nodes_ns
+            all_colors += colors
+
+        nx.draw_networkx_nodes(self.G, self.pos, nodelist=all_nodes, node_size=500, node_color=all_colors)
 
         nx.draw_networkx_labels(self.G, self.pos)
 
@@ -306,6 +314,8 @@ class ProgramGraph(SuperGraph):
             plt.show()
         else:
             plt.pause(blocking_time)
+
+        return self.pos
 
     def validate(self):
         # Check that there are no cycles
@@ -428,7 +438,7 @@ class MachineGraph(SuperGraph):
             e.bandwidth += delta
 
 
-    def draw(self, blocking_time=-1, **kwargs):
+    def draw(self, blocking_time=-1, pos_override=None, **kwargs):
         """
         Draw this graph using matplotlib.
 
@@ -443,6 +453,9 @@ class MachineGraph(SuperGraph):
 
         linewidth_exp = kwargs.get("linewidth_exp", 0.5)
 
+        if pos_override is not None: 
+            self.pos = pos_override
+
         if self.pos is None:
             self.pos = nx.spring_layout(self.G)
 
@@ -454,7 +467,6 @@ class MachineGraph(SuperGraph):
             nx.draw_networkx_nodes(self.G, self.pos, nodelist=nodes_ns, node_size=500, node_color=ns.color())
 
         nx.draw_networkx_nodes(self.G, self.pos, nodelist=taskless, node_size=500, node_color=taskless_color)
-
         nx.draw_networkx_labels(self.G, self.pos)
 
         # Draw based on cost of edge
@@ -473,6 +485,8 @@ class MachineGraph(SuperGraph):
             plt.show()
         else:
             plt.pause(blocking_time)
+        
+        return self.pos
 
     def validate(self):
         # Check that there are no duplicate ids
