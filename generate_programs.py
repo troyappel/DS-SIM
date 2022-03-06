@@ -99,5 +99,5 @@ def generate_dask(layers=2, num_per_layer=4, density=0.5, min_compute=1, max_com
 # pg = generate_mapreduce(2, 1, 1, 1, 1, 1, 1)
 # pg.draw()
 
-pg = generate_dask(4,3,0.4,1,6)
-pg.draw()
+# pg = generate_dask(4,3,0.4,1,6)
+# pg.draw()
