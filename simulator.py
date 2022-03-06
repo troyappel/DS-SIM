@@ -29,6 +29,7 @@ class Simulator:
         end_time = self.current_time + graphs.get_max_fetch_time(task, machine, self.pg, self.mg)
 
         assert task.state == graphs.NodeState.UNSCHEDULED
+        assert task.bound_machine is None
 
         # Create a transfer
         for pred_task in self.pg.pred(task):
@@ -38,18 +39,21 @@ class Simulator:
             heapq.heappush(self.event_queue, ev)
 
         # The transfer has started, so the associated task is fetching
-        self.pg[task].state = graphs.NodeState.FETCHING
+        task.state = graphs.NodeState.FETCHING
 
         # We will, at this point, definitely run task on machine
         self.pg[task].bound_machine = machine
         # machine.task = task
-
 
     def _start_compute(self, task, machine):
 
         print(f'Task: {task.id} scheduled on {machine.id}')
         assert task.state != graphs.NodeState.RUNNING
         assert task.state != graphs.NodeState.COMPLETED
+
+        assert task.state != graphs.NodeState.FETCHING
+
+        assert task.state == graphs.NodeState.UNSCHEDULED or task.state == graphs.NodeState.READY
 
         end_time = self.current_time + time_to_run_task(self.pg[task], self.mg[machine])
         ev = events.TaskEvent(self.current_time, end_time, self.pg, self.mg, task, machine)
@@ -63,6 +67,7 @@ class Simulator:
         # fetch and compute
         machine.task = task
 
+
     def _process_event(self, event : events.Event):
         self.current_time = max(self.current_time, event.end_time)
         event.transform_graphs()
@@ -71,13 +76,6 @@ class Simulator:
             ev.recalculate_end(self.current_time)
 
         heapq.heapify(self.event_queue)
-        
-        # if(isinstance(event, events.TransferEvent)):
-        #     # This needs to be made more complicated if we allow
-        #     # simultaneous fetching and compute (the machine might be busy with)
-        #     # something else when we get here
-        #     if event.
-        #     self._start_compute(event.task, event.machine)
 
     def _start_ready(self):
         ready_tasks = [p for p in self.pg if p.state == graphs.NodeState.READY]
@@ -85,6 +83,7 @@ class Simulator:
         for task in ready_tasks:
             if task.bound_machine.is_free():
                 self._start_compute(task, task.bound_machine)
+
 
     def _schedule(self):
         next_up_tasks = self.pg.up_next()
@@ -134,7 +133,8 @@ class Simulator:
 
     def run(self, speedup = 5, outfile = None, draw_visualization=True):
         self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), None))
-        while not self.pg.finished(): 
+        while not self.pg.finished():
+
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.
             next_event = None

@@ -5,16 +5,16 @@ import generate_networks
 from process_outputs import *
 
 # Generate simple inputs
-tree_pg = generate_programs.generate_tree_program_graph(layers=4,branching=5)
-datacenter_mg = generate_networks.generate_tree_machine_network(16,2,1,1,1,1,2, use_disk=False)
+# tree_pg = generate_programs.generate_tree_program_graph(layers=4,branching=5)
+# datacenter_mg = generate_networks.generate_tree_machine_network(16,2,1,1,1,1,2, use_disk=False)
 
 # Example that caused crash: 
 # tree_pg = generate_programs.generate_mapreduce(40, 8, 1, 1, 1, 1, 1)
 # datacenter_mg = generate_networks.generate_tree_machine_network(4,2,1,1,1,1,2, use_disk=True)
 
 # Example that caused crash: 
-# tree_pg = generate_programs.generate_mapreduce(40, 8, 1, 1, 1, 1, 1)
-# datacenter_mg = generate_networks.generate_tree_machine_network(4,2,1,1,1,1,2, use_disk=True)
+tree_pg = generate_programs.generate_mapreduce(16, 8, 1, 1, 1, 1, 1)
+datacenter_mg = generate_networks.generate_tree_machine_network(4,2,1,1,1,1,2, use_disk=True)
 
 # Dump the output file here
 outfilename = "generaltest.pickle"

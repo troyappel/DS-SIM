@@ -207,17 +207,14 @@ class MachineNode(SuperNode):
         self.compute: int = compute
         self.task: Optional[ProgramNode] = None
         self.stored_outputs: Set[ProgramNode] = set()
-        self.ready_inputs: Set[ProgramNode] = set()
+        self.ready_inputs: Set[ProgramEdge] = set()
 
         self.labels: Set[str]
         if labels is None:
             self.labels = set()
         else:
             self.labels = labels
-    
-    def get_available_inputs(self): 
-        return self.stored_outputs.union(self.ready_inputs)
-    
+
     def is_free(self):
         return self.task is None
 
@@ -291,7 +288,7 @@ class ProgramGraph(SuperGraph):
             self.pos = pos_override
 
         if self.pos is None:
-            self.pos = nx.kamada_kawai_layout(self.G)
+            self.pos = nx.shell_layout(self.G)
 
         plt.figure(0)
         plt.clf()

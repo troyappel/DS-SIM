@@ -79,13 +79,13 @@ class TransferEvent(Event):
     def transform_graphs(self):
         # The machine who requested a fetch now has the data associated
         # with this transfer
-        self.machine.ready_inputs.update([self.prev_task])
+        self.machine.ready_inputs.update([self.p_edge.id])
 
         # Released used bandwidth
         self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
 
         # If this is the last transfer, mark the computation
-        all_preds = set([p for p in self.pg.pred(self.task)])
+        all_preds = set([(p.id, self.task.id) for p in self.pg.pred(self.task)])
 
         if all_preds.issubset(self.machine.ready_inputs):
             assert self.task.state != graphs.NodeState.COMPLETED
