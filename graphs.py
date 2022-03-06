@@ -444,7 +444,7 @@ class MachineGraph(SuperGraph):
         linewidth_exp = kwargs.get("linewidth_exp", 0.5)
 
         if self.pos is None:
-            self.pos = nx.spring_layout(self.G)
+            self.pos = nx.kamada_kawai_layout(self.G)
 
         taskless = [n for n in self.G if self.node_dict[n].task is None]
         tasked = [n for n in self.G if self.node_dict[n].task is not None]
