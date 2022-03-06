@@ -6,7 +6,7 @@ def gensym():
     return gensym.acc
 gensym.acc = 0
 
-def approx_equal(a, b, epsilon): 
+def approx_equal(a, b, epsilon=0.0001): 
     return abs(a - b) < epsilon
 
 # Simple record type to represent a freeze frame of our 
