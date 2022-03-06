@@ -3,11 +3,12 @@ from graphs import *
 import pickle
 from typing import List
 from utils import approx_equal, Snapshot
+from events import Event
 
 def prepare_snapshot_list(snapshot_list): 
 
     def unpickle_snapshot(s : Snapshot): 
-        return Snapshot(s.time, pickle.loads(s.mg), pickle.loads(s.pg))
+        return Snapshot(s.time, pickle.loads(s.mg), pickle.loads(s.pg), Event.load_from_snapshot(s.last_event))
 
     return [unpickle_snapshot(s) for s in snapshot_list]
 
@@ -38,13 +39,13 @@ def visualize_history(history, speedup=5, print_time=True, merge_frames_window=0
     history = merge_frames(history, merge_frames_window)
 
     if len(history) != 0:
-        _, mg, pg = history[0]  
+        _, mg, pg, _ = history[0]  
         pg_pos = pg.draw(0.0001)
         mg_pos = mg.draw(3)
 
     current_time = 0
     for snapshot in history: 
-        time, mg, pg = snapshot 
+        time, mg, pg, _ = snapshot 
 
         pg_pos = pg.draw(0.0001, pos_override=pg_pos)
         

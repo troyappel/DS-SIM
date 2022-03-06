@@ -15,7 +15,7 @@ outfilename = "generaltest.pickle"
 in_memory_history = Simulator(datacenter_mg, tree_pg).run(draw_visualization=False, outfile=outfilename)
 
 # Pull the history object out of the file
-# reloaded_history = load_history(outfilename)
+reloaded_history = load_history(outfilename)
 
 # Note that reloaded_history and in_memory_history are equivalent
 
