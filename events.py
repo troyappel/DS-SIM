@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import functools
 import graphs
 from utils import *
+import pickle
 
 @functools.total_ordering
 class Event(ABC):
@@ -32,6 +33,15 @@ class Event(ABC):
 
     def __index__(self):
         return int(self)
+    
+    def snapshot(self):
+        return pickle.dumps(self)
+    
+    @staticmethod
+    def load_from_snapshot(raw_bytes): 
+        if raw_bytes is None: 
+            return None
+        return pickle.loads(raw_bytes)
 
 
 # Event for when ALL dependencies of a task are retrieved

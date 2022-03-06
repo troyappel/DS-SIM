@@ -11,4 +11,4 @@ def approx_equal(a, b, epsilon=0.0001):
 
 # Simple record type to represent a freeze frame of our 
 # simulation, for reconstructing data and visualizations
-Snapshot = namedtuple('Snapshot', ['time', 'mg', 'pg'])
+Snapshot = namedtuple('Snapshot', ['time', 'mg', 'pg', 'last_event'])

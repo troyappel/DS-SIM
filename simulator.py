@@ -132,17 +132,19 @@ class Simulator:
             return False
 
     def run(self, speedup = 5, outfile = None, draw_visualization=True):
-        self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
+        self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), None))
         while not self.pg.finished(): 
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.
+            next_event = None
             if len(self.event_queue) > 0:
-                self._process_event(heapq.heappop(self.event_queue))
+                next_event = heapq.heappop(self.event_queue)
+                self._process_event(next_event)
             
             self._start_ready()
             self._schedule()
-
-            self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot()))
+            serialized_event = next_event.snapshot() if next_event is not None else None
+            self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_event))
 
         if outfile is not None: 
             if self._write_history(outfile): 
