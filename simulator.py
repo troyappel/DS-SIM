@@ -131,7 +131,7 @@ class Simulator:
         except: 
             return False
 
-    def run(self, speedup = 5, outfile = None, draw_visualization=True):
+    def run(self, speedup = 5, outfile = None, draw_visualization=True, print_time=False):
         self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), pickle.dumps([])))
         while not self.pg.finished(): 
 
@@ -149,6 +149,8 @@ class Simulator:
             self._schedule()
 
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_q))
+            if(print_time): 
+                print(self.current_time)
 
         if outfile is not None: 
             if self._write_history(outfile): 
