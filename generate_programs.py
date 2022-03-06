@@ -74,5 +74,5 @@ def generate_mapreduce(num_map, num_reduce, map_compute, reduce_compute, map_inp
     p_edges = mapper_in + mapper_out + mapper_to_reducer + reducer_out
     return graphs.ProgramGraph(p_nodes, p_edges)
 
-pg = generate_mapreduce(3, 2, 1, 1, 1, 1, 1)
-pg.draw()
+# pg = generate_mapreduce(2, 1, 1, 1, 1, 1, 1)
+# pg.draw()

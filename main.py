@@ -8,6 +8,10 @@ from process_outputs import *
 tree_pg = generate_programs.generate_tree_program_graph(layers=3,branching=5)
 datacenter_mg = generate_networks.generate_tree_machine_network(8,2,1,1,1,1,2, use_disk=False)
 
+# Example that caused crash: 
+# tree_pg = generate_programs.generate_mapreduce(40, 8, 1, 1, 1, 1, 1)
+# datacenter_mg = generate_networks.generate_tree_machine_network(4,2,1,1,1,1,2, use_disk=True)
+
 # Dump the output file here
 outfilename = "generaltest.pickle"
 
@@ -17,7 +21,7 @@ in_memory_history = Simulator(datacenter_mg, tree_pg).run(draw_visualization=Fal
 # Pull the history object out of the file
 reloaded_history = load_history(outfilename)
 
-# Note that reloaded_history and in_memory_history are equivalent
+# # Note that reloaded_history and in_memory_history are equivalent
 
-# Now can visualize again from these representations
-visualize_history(in_memory_history)
+# # Now can visualize again from these representations
+visualize_history(in_memory_history, print_time=False)

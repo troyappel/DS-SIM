@@ -14,11 +14,11 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
     num_racks = total_machines//machines_per_rack
 
     # generate nodes
-    machines = [MachineNode(compute_per_core * cores, i, {'machine'}) for i in range(total_machines)]
-    rack_switches = [MachineNode(0, len(machines) + i, {'rack_switch'}) for i in range(num_racks)]
-    root_switch = MachineNode(0, len(machines) + len(rack_switches), {'root_switch'})
+    machines = [MachineNode(compute_per_core * cores, f'machine_{i}', {'machine'}) for i in range(total_machines)]
+    rack_switches = [MachineNode(0, f'rack_switch_{i}', {'rack_switch'}) for i in range(num_racks)]
+    root_switch = MachineNode(0, 'root_switch', {'root_switch'})
     if use_disk:
-        disks = [MachineNode(0, len(machines) + len(rack_switches) + 1 + i, {'disk'}) for i in range(total_machines)]
+        disks = [MachineNode(0, f'disk_{i}', {'disk'}) for i in range(total_machines)]
     else:
         disks = []
     nodes = machines + rack_switches + [root_switch] + disks
@@ -31,16 +31,16 @@ def generate_tree_machine_network(total_machines, machines_per_rack, compute_per
     edges = []
     # connect machines to racks
     for i in range(total_machines):
-        edges.append(MachineEdge(i, len(machines) + i//num_racks, bandwidth=rack_bandwidth))
+        edges.append(MachineEdge(f'machine_{i}', f'rack_switch_{i//num_racks}', bandwidth=rack_bandwidth))
 
     # connect racks to root
     for i in range(num_racks):
-        edges.append(MachineEdge(len(machines) + i, len(machines) + len(rack_switches), bandwidth=root_bandwidth))
+        edges.append(MachineEdge(f'rack_switch_{i}', 'root_switch', bandwidth=root_bandwidth))
 
     # connect machines to disks
     if use_disk:
         for i in range(total_machines):
-            edges.append(MachineEdge(i, len(machines) + len(rack_switches) + 1 + i, bandwidth=disk_bandwidth))
+            edges.append(MachineEdge(f'machine_{i}', f'disk_{i}', bandwidth=disk_bandwidth))
 
     return MachineGraph(nodes, edges)
 
