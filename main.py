@@ -4,9 +4,6 @@ import generate_programs
 import generate_networks
 from process_outputs import *
 
-
-assert(False)
-
 # Generate simple inputs
 tree_pg = generate_programs.generate_tree_program_graph(layers=4,branching=5)
 datacenter_mg = generate_networks.generate_tree_machine_network(16,2,1,1,1,1,2, use_disk=False)
