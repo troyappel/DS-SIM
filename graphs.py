@@ -5,7 +5,7 @@ from copy import copy
 
 from typing import Callable, List, Tuple, Set, Optional, Dict, Union, Type
 import pickle 
-
+import functools
 import collections
 
 # added b/c of weird networkx error with python3.10: https://githubmemory.com/index.php/@networkx
@@ -243,8 +243,10 @@ class ProgramGraph(SuperGraph):
     """
     def __init__(self, nodes=None, edges=None, strict=True):
         super().__init__(nx.DiGraph(), nodes, edges, strict)
+        self.completed_preds = set()
 
     ## GRAPH-SPECIFIC FUNCTIONS
+    @functools.cache
     def pred(self, key):
         preds = self.G.predecessors(to_id(key))
         return self[preds]
@@ -260,15 +262,25 @@ class ProgramGraph(SuperGraph):
     def out_edges(self, key):
         eds = self.G.out_edges(to_id(key))
         return [self.edge_dict[ed] for ed in eds]
+    
+    
+    def preds_completed(self, node):
+        if node in self.completed_preds: 
+            return True
+        result = all([x.state == NodeState.COMPLETED for x in self.pred(node)])    
+
+        if result: 
+            self.completed_preds.add(node)
+        
+        return result
 
     def up_next(self): 
         '''
         Returns list of graphs whose predecessors are all complete
         '''
-        def preds_completed(node):
-            return all([x.state == NodeState.COMPLETED for x in self.pred(node)])
 
-        return [x for x in list(self.node_dict.values()) if preds_completed(x) and x.state == NodeState.UNSCHEDULED]
+
+        return [x for x in list(self.node_dict.values()) if self.preds_completed(x) and x.state == NodeState.UNSCHEDULED]
     
     def finished(self): 
         '''
@@ -507,7 +519,7 @@ def get_max_fetch_time(task, machine, pg: ProgramGraph, mg: MachineGraph, heuris
 
     preds_machine_ids = [p.bound_machine for p in preds]
 
-    if any(p.state != NodeState.COMPLETED for p in preds):
+    if not pg.preds_completed(t_id): # any(p.state != NodeState.COMPLETED for p in preds):
         return None
 
     if any(m is None for m in preds_machine_ids):
