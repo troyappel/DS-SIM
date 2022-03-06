@@ -15,7 +15,7 @@ import pandas as pd
 def prepare_snapshot_list(snapshot_list): 
 
     def unpickle_snapshot(s : Snapshot): 
-        return Snapshot(s.time, pickle.loads(s.mg), pickle.loads(s.pg), Event.load_from_snapshot(s.last_event))
+        return Snapshot(s.time, pickle.loads(s.mg), pickle.loads(s.pg), pickle.loads(s.eventqueue))
 
     return [unpickle_snapshot(s) for s in snapshot_list]
 
@@ -74,7 +74,7 @@ def sum_dicts(d_list):
     return reduce(reducer, d_list, {})
 
 def generation_dict(eventqueue, generation):
-    data = {'bw_in': 0, 'bw_out': 0, 'trans_in_ct': 0, 'trans_out_ct': 0, 'run_ct': 0}
+    data = {'bw_in': 0., 'bw_out': 0., 'trans_in_ct': 0., 'trans_out_ct': 0., 'run_ct': 0.}
     for e in eventqueue:
         if isinstance(e, events.TransferEvent):
             if e.task.id in generation:
@@ -91,8 +91,8 @@ def generation_dict(eventqueue, generation):
     return data
 
 def append_to_key(d, i):
-    for key in d:
-        d[key + i] = d[key]
+    for key in list(d):
+        d[f'{key}_{i}'] = d[key]
         del d[key]
 
 def get_step_data(eventqueue, time, generations):
@@ -108,8 +108,14 @@ def get_step_data(eventqueue, time, generations):
 
     return step_dict
 
-def history_df(pg0: ProgramGraph, history):
-    generations = nx.topological_generations(pg0.G)
+def history_df(history):
+
+    if len(history) == 0:
+        return None
+
+    _, mg0, pg0, _ = history[0]
+
+    generations = list(nx.topological_generations(pg0.G))
 
     ds = []
 

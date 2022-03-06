@@ -20,4 +20,6 @@ reloaded_history = load_history(outfilename)
 # Note that reloaded_history and in_memory_history are equivalent
 
 # Now can visualize again from these representations
-visualize_history(in_memory_history, speedup=5, merge_frames_window=.01)
+# visualize_history(in_memory_history, speedup=5, merge_frames_window=.01)
+
+print(history_df(in_memory_history))

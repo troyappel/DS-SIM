@@ -132,10 +132,13 @@ class Simulator:
             return False
 
     def run(self, speedup = 5, outfile = None, draw_visualization=True):
-        self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), None))
+        self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), pickle.dumps([])))
         while not self.pg.finished(): 
             # Alternate between processing an event and invoking the scheduler
             # to react to any chances made by that event.
+
+            serialized_q = pickle.dumps([e for e in self.event_queue])
+
             next_event = None
             if len(self.event_queue) > 0:
                 next_event = heapq.heappop(self.event_queue)
@@ -143,8 +146,8 @@ class Simulator:
             
             self._start_ready()
             self._schedule()
-            serialized_event = next_event.snapshot() if next_event is not None else None
-            self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_event))
+
+            self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_q))
 
         if outfile is not None: 
             if self._write_history(outfile): 
