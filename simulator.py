@@ -1,5 +1,4 @@
 import heapq
-from turtle import speed
 import events
 import graphs
 from typing import List
