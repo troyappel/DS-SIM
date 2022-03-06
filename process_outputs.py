@@ -1,8 +1,15 @@
+from functools import reduce
 from unittest import skip
+
+import events
 from graphs import *
 import pickle
 from typing import List
 from utils import approx_equal, Snapshot
+
+import networkx as nx
+
+import pandas as pd
 
 def prepare_snapshot_list(snapshot_list): 
 
@@ -36,13 +43,13 @@ def visualize_history(history, speedup=5, print_time=True, merge_frames_window=0
     history = merge_frames(history, merge_frames_window)
     
     if len(history) != 0:
-        _, mg, pg = history[0]  
+        _, mg, pg = history[0]
         pg.draw(0.0001)
         mg.draw(3)
 
     current_time = 0
     for snapshot in history: 
-        time, mg, pg = snapshot 
+        time, mg, pg = snapshot
 
         pg.draw(0.0001)
         
@@ -55,4 +62,57 @@ def visualize_history(history, speedup=5, print_time=True, merge_frames_window=0
     
         if print_time:
             print(f"Time: {round(current_time, 2)}")
-    
+
+def sum_dicts(d_list):
+    def reducer(accumulator, element):
+        for key, value in element.items():
+            accumulator[key] = accumulator.get(key, 0) + value
+        return accumulator
+    return reduce(reducer, d_list, {})
+
+def generation_dict(eventqueue, generation):
+    data = {'bw_in': 0, 'bw_out': 0, 'trans_in_ct': 0, 'trans_out_ct': 0, 'run_ct': 0}
+    for e in eventqueue:
+        if isinstance(e, events.TransferEvent):
+            if e.task.id in generation:
+                data['bw_in'] += e.used_bandwidth
+                data['trans_in_ct'] += 1
+            elif e.prev_task.id in generation:
+                data['bw_out'] += e.used_bandwidth
+                data['trans_out_ct'] += 1
+
+        if isinstance(e, events.TaskEvent):
+            if e.task.id in generation:
+                data['run_ct'] += 1
+
+    return data
+
+def append_to_key(d, i):
+    for key in d:
+        d[key + i] = d[key]
+        del d[key]
+
+def get_step_data(eventqueue, time, generations):
+    g_dicts = [generation_dict(eventqueue, gen) for gen in generations]
+    sum_dict = sum_dicts(g_dicts)
+
+    step_dict = {'time': time}
+    step_dict.update(sum_dict)
+
+    for i, d in enumerate(g_dicts):
+        append_to_key(d, i)
+        step_dict.update(d)
+
+    return step_dict
+
+def history_df(pg0: ProgramGraph, history):
+    generations = nx.topological_generations(pg0.G)
+
+    ds = []
+
+    for snapshot in history:
+        time, mg, pg, eventqueue = snapshot
+
+        ds.append(get_step_data(eventqueue, time, generations))
+
+    return pd.DataFrame(ds)
