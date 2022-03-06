@@ -157,13 +157,13 @@ class ProgramNode(SuperNode):
         self.state: NodeState = NodeState.UNSCHEDULED
         self.bound_machine: Optional[MachineNode] = None
 
-        self.affinities: Set[str]
+        self.affinities: Callable[[str], float]
         if affinities is None:
-            self.affinities = {}
+            self.affinities = lambda x: 1
         else:
             self.affinities = affinities
 
-        self.dist_affinity: Callable[[int], int]
+        self.dist_affinity: Callable[[int], float]
         if dist_affinity is None:
             self.dist_affinity = lambda x: 1 / (1 + x)
         else:
@@ -172,14 +172,16 @@ class ProgramNode(SuperNode):
     def __getstate__(self):
         state = self.__dict__.copy()
         # Pickle can't deal with local lambdas, so we 
-        # need to skip dist_affinity
+        # need to skip dist_affinity and affinities
+        del state["affinities"]
         del state["dist_affinity"]
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        # Add dist_affinity back since it doesn't exist in the pickle
+        # Add dist_affinity and affinities back since it doesn't exist in the pickle
         self.dist_affinity = None
+        self.affinities = None
 
 
 class ProgramEdge(SuperEdge):
@@ -205,17 +207,14 @@ class MachineNode(SuperNode):
         self.compute: int = compute
         self.task: Optional[ProgramNode] = None
         self.stored_outputs: Set[ProgramNode] = set()
-        self.ready_inputs: Set[ProgramNode] = set()
+        self.ready_inputs: Set[ProgramEdge] = set()
 
         self.labels: Set[str]
         if labels is None:
             self.labels = set()
         else:
             self.labels = labels
-    
-    def get_available_inputs(self): 
-        return self.stored_outputs.union(self.ready_inputs)
-    
+
     def is_free(self):
         return self.task is None
 
@@ -289,7 +288,7 @@ class ProgramGraph(SuperGraph):
             self.pos = pos_override
 
         if self.pos is None:
-            self.pos = nx.kamada_kawai_layout(self.G)
+            self.pos = nx.shell_layout(self.G)
 
         plt.figure(0)
         plt.clf()
@@ -537,7 +536,7 @@ def get_task_affinity(task, machine, pg: ProgramGraph, mg: MachineGraph):
     dist = get_max_fetch_time(task, machine, pg, mg)
 
     # Get mult of all machine types
-    machine_affinities = [pg[t_id].affinities.get(m_type, 1) for m_type in mg[m_id].labels]
+    machine_affinities = [pg[t_id].affinities(m_type) for m_type in mg[m_id].labels]
 
     return pg[t_id].dist_affinity(dist) * math.prod(machine_affinities)
 
