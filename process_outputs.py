@@ -126,7 +126,7 @@ def history_df(history):
 
     return pd.DataFrame(ds)
 
-def plot_mapreduce_data_transfer(hist_df):
+def plot_mapreduce_data_transfer(hist_df, name='mr_data_transfer.png'):
     '''
         Plot mapper input, mapper to reducer (shuffle), and reducer output data transfer over time
     '''
@@ -140,4 +140,5 @@ def plot_mapreduce_data_transfer(hist_df):
     plt.xlabel("Timestep")
     plt.ylabel("Data/Time")
     plt.legend(loc='upper right')
-    plt.show()
+    plt.savefig(name)
+    plt.close()

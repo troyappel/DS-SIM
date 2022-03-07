@@ -3,7 +3,6 @@ from simulator import *
 import generate_programs
 import generate_networks
 from process_outputs import *
-import matplotlib.pyplot as plt
 
 tree_pg = generate_programs.generate_tree_program_graph(layers=3,    # How many levels in the tree 
                                                         branching=2) # How many children of each node
@@ -22,7 +21,7 @@ grep_pg = generate_programs.generate_mapreduce(num_map=25,          # Number of 
                                                reduce_compute=1,    # Above, but for reducer
                                                map_input_sz=1,      # Size of data, in GB for the input data to a map task
                                                map_output_sz=0.01,  # Size of data out of each map task, and to reducer
-                                               reduce_output_sz=1)  # Output from each reducer
+                                               reduce_output_sz=0.01)  # Output from each reducer
 
 dask_pg = generate_programs.generate_dask(layers=2,          # "Layers" of sets of task
                                           num_per_layer=4,   # Tasks in each layer
@@ -36,7 +35,7 @@ datacenter_mg = generate_networks.generate_tree_machine_network(total_machines=8
                                                                 machines_per_rack=2, # Racks in the cluster, with total_machines/machines_per_rack machines each
                                                                 compute_per_core=1,  # Compute/second handled by the machine
                                                                 cores=1,             # Cores in each machine
-                                                                disk_bandwidth=0.1,  # Bandwidth between each machine and its disk, if use_disk is true
+                                                                disk_bandwidth=1,  # Bandwidth between each machine and its disk, if use_disk is true
                                                                 rack_bandwidth=1,    # Bandwidth on the machine <--> switch links 
                                                                 root_bandwidth=10,   # Bandwidth on the rack switch <--> root switch links
                                                                 rack_agg=False,      # If true, then bandwidth is total for the switch. Else per NIC
