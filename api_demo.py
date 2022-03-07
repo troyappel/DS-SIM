@@ -62,12 +62,12 @@ mapreduce_sort_data_from_disk = load_history(outfilename)
 # -------------------------
 
 # We can replay a simulation 
-visualize_history(mapreduce_sort_data_from_disk,   # History to replay
-                  speedup=5,                # Display at speedup x realtime 
-                  merge_frames_window=0.01) # Combine frames whose time falls within merge_frames_window of each other to one frame
-
-
-# We can create a graph of the history 
+# visualize_history(mapreduce_sort_data_from_disk,   # History to replay
+#                   speedup=5,                # Display at speedup x realtime
+#                   merge_frames_window=0.01) # Combine frames whose time falls within merge_frames_window of each other to one frame
+#
+#
+# # We can create a graph of the history
 mr_sort_history_dataframe = history_df(mapreduce_sort_data_from_disk)
 print(mr_sort_history_dataframe.columns)
 
