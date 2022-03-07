@@ -409,7 +409,10 @@ class MachineGraph(SuperGraph):
             return [], 0
 
         for edge in self.G.edges:
-            self.G.edges[edge]['weight'] = self.edge_dict[edge].latency + data_size / (self.edge_dict[edge].bandwidth + eps)
+            w = self.edge_dict[edge].latency + data_size / (self.edge_dict[edge].bandwidth + eps)
+            w = max(w, 0)
+            self.G.edges[edge]['weight'] = w
+
 
         # Get path
         path = nx.shortest_path(self.G, id1, id2, 'weight')
@@ -447,6 +450,7 @@ class MachineGraph(SuperGraph):
     def alter_path_bandwidth(self, path, delta):
         for e in self.get_path_edges(path):
             e.bandwidth += delta
+            assert e.bandwidth >= -1e-4
 
 
     def draw(self, blocking_time=-1, pos_override=None, **kwargs):

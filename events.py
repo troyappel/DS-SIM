@@ -108,12 +108,16 @@ class TransferEvent(Event):
         self.transfer_progress += dt * self.used_bandwidth
         # assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
 
+        if approx_equal(self.transfer_progress, self.p_edge.data_size):
+            self.end_time = time
+            return
+
         # Calculate new bandwidth and alter that path
         excess_bandwidth = self.mg.get_path_bandwidth(self.path)
 
         if not approx_equal(0, excess_bandwidth):
 
-            self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth - excess_bandwidth)
+            self.mg.alter_path_bandwidth(self.path, -excess_bandwidth)
 
             self.used_bandwidth += excess_bandwidth
 
