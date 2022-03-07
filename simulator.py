@@ -85,7 +85,6 @@ class Simulator:
             if task.bound_machine.is_free():
                 self._start_compute(task, task.bound_machine)
 
-
     def _schedule(self):
         next_up_tasks = self.pg.up_next()
         free_machines = self.mg.idle_machines()
@@ -153,6 +152,7 @@ class Simulator:
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_q))
             if(print_time): 
                 print(self.current_time)
+        print("Done with Simulation")
 
         if outfile is not None: 
             if self._write_history(outfile): 

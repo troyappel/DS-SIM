@@ -66,7 +66,7 @@ def generate_mapreduce(num_map, num_reduce, map_compute, reduce_compute, map_inp
     mapper_out = [graphs.ProgramEdge(f'map_{i}', f'map_output_{i}', data_size=map_output_sz) for i in range(num_map)]
 
     # mapper to reducer edges
-    mapper_to_reducer = [graphs.ProgramEdge(f'map_output_{i}', f'reduce_{j}', map_output_sz) for i in range(num_map) for j in range (num_reduce)]
+    mapper_to_reducer = [graphs.ProgramEdge(f'map_output_{i}', f'reduce_{j}', map_output_sz/num_reduce) for i in range(num_map) for j in range (num_reduce)]
 
     # reducer output edges
     reducer_out = [graphs.ProgramEdge(f'reduce_{i}', f'reduce_output_{i}', data_size=reduce_output_sz) for i in range(num_reduce)]
