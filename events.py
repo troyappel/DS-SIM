@@ -106,7 +106,7 @@ class TransferEvent(Event):
 
         # Calculate how much data has been transferred so far
         self.transfer_progress += dt * self.used_bandwidth
-        assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
+        # assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
 
         # Calculate new bandwidth and alter that path
         excess_bandwidth = self.mg.get_path_bandwidth(self.path)

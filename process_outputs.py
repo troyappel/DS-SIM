@@ -125,3 +125,16 @@ def history_df(history):
         ds.append(get_step_data(eventqueue, time, generations))
 
     return pd.DataFrame(ds)
+
+def plot_mapreduce_data_transfer(hist_df):
+    '''
+        Plot mapper input, mapper to reducer (shuffle), and reducer output data transfer over time
+    '''
+    t = hist_df['time'].to_list()
+    input = hist_df['bw_out_0'].to_list()
+    shuffle = hist_df['bw_out_2'].to_list()
+    output = hist_df['bw_out_3'].to_list()
+    plt.plot(t, input)
+    plt.plot(t, shuffle)
+    plt.plot(t, output)
+    plt.show()

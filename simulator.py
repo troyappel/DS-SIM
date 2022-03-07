@@ -5,6 +5,7 @@ from typing import List
 import pickle
 from process_outputs import prepare_snapshot_list, visualize_history
 from utils import Snapshot
+import time
 
 def time_to_run_task(t, m, eps=1e-5):
     """
@@ -84,7 +85,6 @@ class Simulator:
             if task.bound_machine.is_free():
                 self._start_compute(task, task.bound_machine)
 
-
     def _schedule(self):
         next_up_tasks = self.pg.up_next()
         free_machines = self.mg.idle_machines()
@@ -131,7 +131,8 @@ class Simulator:
         except: 
             return False
 
-    def run(self, speedup = 5, outfile = None, draw_visualization=True):
+    def run(self, speedup = 5, outfile = None, draw_visualization=True, print_time=False):
+        start_time = time.time()
         self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), pickle.dumps([])))
         while not self.pg.finished(): 
 
@@ -149,6 +150,9 @@ class Simulator:
             self._schedule()
 
             self.history.append(Snapshot(self.current_time, self.mg.snapshot(), self.pg.snapshot(), serialized_q))
+            if(print_time): 
+                print(self.current_time)
+        print("Done with Simulation")
 
         if outfile is not None: 
             if self._write_history(outfile): 
@@ -159,4 +163,8 @@ class Simulator:
         if draw_visualization:
             visualize_history(prepare_snapshot_list(self.history), speedup=speedup)
 
-        return prepare_snapshot_list(self.history)
+        print("--- Simulation took %s seconds ---" % (time.time() - start_time))
+        start_time = time.time()
+        result = prepare_snapshot_list(self.history)
+        print("--- Preparing snapshots took %s seconds ---" % (time.time() - start_time))
+        return result 
