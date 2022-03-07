@@ -300,7 +300,11 @@ class ProgramGraph(SuperGraph):
             self.pos = pos_override
 
         if self.pos is None:
-            self.pos = nx.shell_layout(self.G)
+            generations = list(nx.topological_generations(self.G))
+            for i, g in enumerate(generations):
+                for node in g:
+                    self.G.nodes[node]['layer'] = i
+            self.pos = nx.multipartite_layout(self.G, subset_key='layer')
 
         plt.figure(0)
         plt.clf()
