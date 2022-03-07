@@ -126,7 +126,7 @@ def history_df(history):
 
     return pd.DataFrame(ds)
 
-def plot_data_transfer(hist_df):
+def plot_mapreduce_data_transfer(hist_df):
     '''
         Plot mapper input, mapper to reducer (shuffle), and reducer output data transfer over time
     '''
