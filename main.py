@@ -32,4 +32,4 @@ reloaded_history = load_history(outfilename)
 
 print(history_df(in_memory_history))
 
-visualize_history(in_memory_history, speedup=5, merge_frames_window=.01)
+# visualize_history(in_memory_history, speedup=5, merge_frames_window=.01)

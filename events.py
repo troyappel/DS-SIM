@@ -59,7 +59,6 @@ class TransferEvent(Event):
 
         self.p_edge = self.pg[(self.prev_task, self.task)]
 
-
         self.prev_machine = self.prev_task.bound_machine
 
         self.transfer_progress = 0
@@ -109,12 +108,14 @@ class TransferEvent(Event):
         self.transfer_progress += dt * self.used_bandwidth
         assert self.transfer_progress < self.p_edge.data_size # Should not finish just by recalculation
 
-        # Undo change in bandwidth
-        self.mg.alter_path_bandwidth(self.path, self.used_bandwidth)
-
         # Calculate new bandwidth and alter that path
-        self.used_bandwidth = self.mg.get_path_bandwidth(self.path)
-        self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth)
+        excess_bandwidth = self.mg.get_path_bandwidth(self.path)
+
+        if not approx_equal(0, excess_bandwidth):
+
+            self.mg.alter_path_bandwidth(self.path, -self.used_bandwidth - excess_bandwidth)
+
+            self.used_bandwidth += excess_bandwidth
 
         # Determine new end time based on new bandwidth
         self.end_time = self.last_time + (self.p_edge.data_size - self.transfer_progress) / (self.used_bandwidth + eps)
